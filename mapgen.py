@@ -7,6 +7,7 @@ Generate maps for use with the Paper2GIS system
 # python mapgen.py -a -253416.76422779588028789 -b 7076444.70266312919557095 -c -244881.40985959535464644 -d 7080278.71288163959980011 -e 27700 -f out.png
 
 import mapnik, qrcode, argparse, uuid
+from datetime import datetime
 from scalebar import addScaleBar
 from math import ceil
 from PIL import Image, ImageOps, ImageDraw, ImageFont
@@ -17,7 +18,6 @@ def mm2px(mm, dpi=96):
 	1 inch = 25.4mm 96dpi is therefore...
 	"""
 	return int(ceil(mm * dpi / 25.4))
-
 
 '''
 qgis get bounds (convenient for testing)
@@ -66,8 +66,11 @@ qr = qrcode.QRCode(
     border=4,
 )
 
+# get unique number hex (truncate to 8 characters)
+uid = uuid.uuid4().hex[:8]
+
 # add data to qr object, 'make' and export to image
-qr.add_data(''.join(["[", blX, ",", blY, ",", trX, ",", trY, ",", epsg, "]"]))
+qr.add_data(''.join(["[", blX, ",", blY, ",", trX, ",", trY, ",", epsg, ",", uid, "]"]))
 qr.make(fit=True)
 qrcode = qr.make_image()
 
@@ -85,15 +88,32 @@ https://github.com/stekhn/blossom
 carto OSMBright/project.mml > OSMBright/style.xml
 '''
 
+'''
+SETTINGS
+'''
+
 # Page dimensions in mm
 w_mm = 297
 h_mm = 210
 
-# make the map using mapnik stylesheet
+# buffer around page in mm
+page_buffer = mm2px(5)
+
+# qr code size
+qr_size = mm2px(32)
+
+# circle diameter
+ed = 15
+
 stylesheet = 'OSMBright/style.xml'
 # stylesheet = 'OSMBright-Blossom/style.xml'
+
+'''
+'''
+
+# make the map using mapnik stylesheet
 image = 'map.png'
-m = mapnik.Map(mm2px(w_mm-10), mm2px(160))
+m = mapnik.Map(mm2px(w_mm-page_buffer*2), mm2px(160))
 mapnik.load_map(m, stylesheet)
 m.zoom_to_box(mapnik.Box2d(float(blX), float(blY), float(trX), float(trY)))
 mapnik.render_to_file(m, image)
@@ -103,38 +123,34 @@ map = ImageOps.expand(Image.open('map.png'), border=2, fill='black')
 page = Image.new('RGB', (mm2px(w_mm), mm2px(h_mm)), 'white')
 
 # put the map and the qrcode on the page
-page.paste(map, (mm2px(5), mm2px(5)))
-page.paste(qrcode.resize((mm2px(32), mm2px(32))), (mm2px(5), mm2px(170)))
+page.paste(map, (page_buffer, page_buffer))
+page.paste(qrcode.resize((qr_size, qr_size)), (page_buffer, mm2px(173)))
 
 # add some circles for dempster-shafer - get drawing context for page
 draw = ImageDraw.Draw(page)
 
 # working backwards, 5mm from edge of page
-x = 5
-
-# circle diameter
-ed = 20
+x = page_buffer
 
 # 5 iterations
 for i in xrange(5):
 	
 	# draw circles 5mm apart for each iteration
-	draw.ellipse([mm2px(w_mm-x-ed), mm2px(170), mm2px(w_mm-x), mm2px(170+ed)], fill='white', outline='black')
-	x += ed + 5
-
-# get unique number hex (truncate to 8 characters)
-uid = uuid.uuid4().hex[:8]
-
-# get the dimensions of the text
-tw, th = draw.textsize(uid)
+	draw.ellipse([mm2px(w_mm-x-ed), mm2px(177), mm2px(w_mm-x), mm2px(177+ed)], fill='white', outline='black')
+	x += ed + 3
 
 # prepare a font
 font = ImageFont.truetype('./open-sans/OpenSans-Regular.ttf', 12)
 
-# add uid text
-pw, ph = page.size
+# add attribution text
+year = str(datetime.today().year)
+attributionText = "".join(["Paper2GIS Copyright ", year, " Dr Jonny Huck: https://github.com/jonnyhuck/paper2gis. Map data Copyright ", year, " OpenStreetMap Contributors"])
+draw.text((mm2px(page_buffer), mm2px(161.5) + th), attributionText, fill='black', font=font)
 
-draw.text((pw/2, ph-mm2px(10)), uid, fill='black', font=font)
+# get the dimensions of the text
+tw, th = draw.textsize(uid, font=font)
+pw, ph = page.size
+draw.text((pw - tw - mm2px(page_buffer), mm2px(161.5) + th), uid, fill='black', font=font)
 
 # add a scalebar to the bottom left of the map
 addScaleBar(m, page, False)

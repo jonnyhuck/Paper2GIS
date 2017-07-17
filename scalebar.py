@@ -55,13 +55,13 @@ def addScaleBar(m, mapImg, left=False):
 	
 	# dimensions of the PIL image (replaces use of m.width and m.height in the GitHub version)
 	width, height = mapImg.size
-	
-	# get the dimensions of the text
-	tw, th = draw.textsize(scaleText)
-	
+
 	# prepare a font
 	font = ImageFont.truetype('./open-sans/OpenSans-Regular.ttf', 12)
-
+	
+	# get the dimensions of the text
+	tw, th = draw.textsize(scaleText, font=font)
+	
 	# set scale bar positioning parameters
 	barBuffer  = mm2px(5)	# distance from scale bar to edge of image
 	lBuffer    = 5	# distance from the line to the end of the background
@@ -108,6 +108,6 @@ def addScaleBar(m, mapImg, left=False):
 	
 		# add label
 		draw.text(( 
-			(width-lBuffer-lBuffer-pxScaleBar/2) - tw/2, 
+			(width-lBuffer-pxScaleBar/2) - tw/2, 
 			height-barBuffer-lBuffer-lBuffer-th), 
 			scaleText, fill=(0,0,0), font=font)
