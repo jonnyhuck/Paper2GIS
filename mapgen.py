@@ -167,6 +167,8 @@ carto OSMBright/project.mml > OSMBright/style.xml
 '''''''''''''''''''''''''''''''''''''SETTINGS'''''''''''''''''''''''''''''''''''''''''''''
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
+## TODO: these could be incorporated into the args to allow different page sizes etc...
+
 # page dimensions in mm
 w_mm = 297
 h_mm = 210
@@ -205,12 +207,16 @@ m.zoom_to_box(mapnik.Box2d(float(blX), float(blY), float(trX), float(trY)))
 mapnik.render_to_file(m, image)
 map = ImageOps.expand(Image.open('map.png'), border=2, fill='black')
 
-# paste map and QR onto a page
+# make new blank, page sized image
 page = Image.new('RGB', (page_w, page_h), 'white')
+
+# open the north arrow
+north = Image.open('north.png')
 
 # put the map and the qrcode on the page
 page.paste(map, (page_buffer, page_buffer))
 page.paste(qrcode.resize((qr_size, qr_size)), (page_buffer, map_height+mm2px(13)))
+page.paste(north.resize((qr_size-page_buffer, qr_size-page_buffer)), (page_buffer + qr_size + page_buffer, map_height+mm2px(13)+page_buffer/2))
 
 # add some circles for dempster-shafer - get drawing context for page
 draw = ImageDraw.Draw(page)
