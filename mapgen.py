@@ -1,6 +1,8 @@
 """
 Generate maps for use with the Paper2GIS system
 
+All sizes in pixels unless otehrwise stated with _mm in variable name
+
 @author jonnyhuck
 """
 
@@ -8,16 +10,89 @@ Generate maps for use with the Paper2GIS system
 
 import mapnik, qrcode, argparse, uuid
 from datetime import datetime
-from scalebar import addScaleBar
-from math import ceil
 from PIL import Image, ImageOps, ImageDraw, ImageFont
-
+from math import floor, log10, ceil
 
 def mm2px(mm, dpi=96):
 	"""
 	1 inch = 25.4mm 96dpi is therefore...
 	"""
 	return int(ceil(mm * dpi / 25.4))
+
+
+def addScaleBar(m, mapImg):
+	"""
+	* Add a scalebar to a map, at a sensible width of approx 20% the width of the map
+	*
+	* Parameters:
+	*  - m: 		mapnik Map object
+	*  - mapImg:	PIL Image object for the exported mapnik map
+	*  - left:	boolean value describing whether it should be drawn on the left (True) or right (False)
+	"""
+
+	# get the m per pixel on the map
+	mPerPx = m.scale()
+
+	# how many metres is 20% of the width of the map?
+	twentyPc = m.width * 0.2 * mPerPx
+
+	# get the order of magnitude
+	oom = 10 ** floor(log10(twentyPc))
+
+	# get the desired width of the scalebar in m
+	mScaleBar = round(twentyPc / oom) * oom
+
+	# get the desired width of the scalebar in px
+	pxScaleBar = round(mScaleBar/mPerPx)
+
+	# make some text for the scalebar (sort units)
+	if oom >= 1000:
+		scaleText = str(int(mScaleBar/1000)) + "km"
+	else:
+		scaleText = str(int(mScaleBar)) + "m"
+	
+	# get PIL context to draw on
+	draw = ImageDraw.Draw(mapImg)
+	
+	# dimensions of the PIL image (replaces use of m.width and m.height in the GitHub version)
+	width, height = mapImg.size
+
+	# prepare a font
+	font = ImageFont.truetype('./open-sans/OpenSans-Regular.ttf', 12)
+	
+	# get the dimensions of the text
+	tw, th = draw.textsize(scaleText, font=font)
+	
+	# set scale bar positioning parameters
+	barBuffer  = mm2px(5)	# distance from scale bar to edge of image
+	lBuffer    = 5	# distance from the line to the end of the background
+	tickHeight = 12	# height of the tick marks
+	
+	# draw scale bar...
+			
+	# add background
+	draw.rectangle([
+		(width-pxScaleBar-lBuffer-lBuffer-barBuffer, 
+		height-barBuffer-lBuffer-lBuffer-tickHeight),
+		(width-barBuffer,height-barBuffer)], 
+		outline=(0,0,0), fill=(255,255,255))
+
+	# add lines
+	draw.line([
+		(width-lBuffer-pxScaleBar-barBuffer, height-tickHeight-barBuffer), 
+		(width-lBuffer-pxScaleBar-barBuffer, height-lBuffer-barBuffer), 
+		(width-lBuffer-barBuffer, height-lBuffer-barBuffer), 
+		(width-lBuffer-barBuffer, height-tickHeight-barBuffer)], 
+		fill=(0, 0, 0), width=1)
+
+	# add label
+	draw.text(
+		(width-lBuffer-pxScaleBar/2-tw, 
+		height-barBuffer-lBuffer-th), 
+		scaleText, fill=(0,0,0), font=font)
+
+
+
 
 '''
 qgis get bounds (convenient for testing)
@@ -88,13 +163,20 @@ https://github.com/stekhn/blossom
 carto OSMBright/project.mml > OSMBright/style.xml
 '''
 
-'''
-SETTINGS
-'''
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+'''''''''''''''''''''''''''''''''''''SETTINGS'''''''''''''''''''''''''''''''''''''''''''''
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-# Page dimensions in mm
+# page dimensions in mm
 w_mm = 297
 h_mm = 210
+
+#  page dimensions in px
+page_w = mm2px(w_mm)
+page_h = mm2px(h_mm)
+
+# resolution
+dpi = 96
 
 # buffer around page in mm
 page_buffer = mm2px(5)
@@ -102,29 +184,33 @@ page_buffer = mm2px(5)
 # qr code size
 qr_size = mm2px(32)
 
+# the height of the map
+map_height = mm2px(160)
+
 # circle diameter
-ed = 15
+ed = mm2px(15)
 
 stylesheet = 'OSMBright/style.xml'
 # stylesheet = 'OSMBright-Blossom/style.xml'
 
-'''
-'''
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+'''''''''''''''''''''''''''''''''''''END SETTINGS'''''''''''''''''''''''''''''''''''''''''
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 # make the map using mapnik stylesheet
 image = 'map.png'
-m = mapnik.Map(mm2px(w_mm-page_buffer*2), mm2px(160))
+m = mapnik.Map(page_w - page_buffer*2, map_height)
 mapnik.load_map(m, stylesheet)
 m.zoom_to_box(mapnik.Box2d(float(blX), float(blY), float(trX), float(trY)))
 mapnik.render_to_file(m, image)
 map = ImageOps.expand(Image.open('map.png'), border=2, fill='black')
 
 # paste map and QR onto a page
-page = Image.new('RGB', (mm2px(w_mm), mm2px(h_mm)), 'white')
+page = Image.new('RGB', (page_w, page_h), 'white')
 
 # put the map and the qrcode on the page
 page.paste(map, (page_buffer, page_buffer))
-page.paste(qrcode.resize((qr_size, qr_size)), (page_buffer, mm2px(173)))
+page.paste(qrcode.resize((qr_size, qr_size)), (page_buffer, map_height+mm2px(13)))
 
 # add some circles for dempster-shafer - get drawing context for page
 draw = ImageDraw.Draw(page)
@@ -136,24 +222,25 @@ x = page_buffer
 for i in xrange(5):
 	
 	# draw circles 5mm apart for each iteration
-	draw.ellipse([mm2px(w_mm-x-ed), mm2px(177), mm2px(w_mm-x), mm2px(177+ed)], fill='white', outline='black')
+	draw.ellipse([page_w-x-ed, map_height+mm2px(17), page_w-x, map_height+mm2px(17)+ed], fill='white', outline='black')
 	x += ed + 3
 
 # prepare a font
 font = ImageFont.truetype('./open-sans/OpenSans-Regular.ttf', 12)
 
+# get the dimensions of the text and page
+tw, th = draw.textsize(uid, font=font)
+
 # add attribution text
 year = str(datetime.today().year)
 attributionText = "".join(["Paper2GIS Copyright ", year, " Dr Jonny Huck: https://github.com/jonnyhuck/paper2gis. Map data Copyright ", year, " OpenStreetMap Contributors"])
-draw.text((mm2px(page_buffer), mm2px(161.5) + th), attributionText, fill='black', font=font)
+draw.text((page_buffer, map_height+mm2px(1.5) + th), attributionText, fill='black', font=font)
 
-# get the dimensions of the text
-tw, th = draw.textsize(uid, font=font)
-pw, ph = page.size
-draw.text((pw - tw - mm2px(page_buffer), mm2px(161.5) + th), uid, fill='black', font=font)
+# add uuid text
+draw.text((page_w - tw - page_buffer, map_height+mm2px(1.5) + th), uid, fill='black', font=font)
 
 # add a scalebar to the bottom left of the map
-addScaleBar(m, page, False)
+addScaleBar(m, page)
 
 # save the result
 page.save(filepath, 'PNG')

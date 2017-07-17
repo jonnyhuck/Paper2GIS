@@ -12,14 +12,14 @@ import mapnik
 from math import floor, log10, ceil
 from PIL import Image, ImageDraw, ImageFont
 
-def mm2px(mm, dpi=96):
+def mm2px(mm, dpi):
 	"""
 	1 inch = 25.4mm 96dpi is therefore...
 	"""
 	return int(ceil(mm * dpi / 25.4))
 	
 
-def addScaleBar(m, mapImg, left=False):
+def addScaleBar(m, mapImg, dpi=96):
 	"""
 	* Add a scalebar to a map, at a sensible width of approx 20% the width of the map
 	*
@@ -67,47 +67,25 @@ def addScaleBar(m, mapImg, left=False):
 	lBuffer    = 5	# distance from the line to the end of the background
 	tickHeight = 12	# height of the tick marks
 	
-	# draw scale bar on bottom left...
-	if left:
-	
-		# add background
-		draw.rectangle([(pxScaleBar+lBuffer+lBuffer+barBuffer, 
-			height-barBuffer-lBuffer-lBuffer-tickHeight),
-			(barBuffer,height-barBuffer)], 
-			outline=(0,0,0), fill=(255,255,255))
-	
-		# add lines
-		draw.line([
-			(lBuffer+pxScaleBar+barBuffer, height-tickHeight-barBuffer), 
-			(lBuffer+pxScaleBar+barBuffer, height-lBuffer-barBuffer), 
-			(lBuffer+barBuffer, height-lBuffer-barBuffer), 
-			(lBuffer+barBuffer, height-tickHeight-barBuffer)], 
-			fill=(0, 0, 0), width=1)
-	
-		# add label
-		draw.text(( ((lBuffer+pxScaleBar+barBuffer+lBuffer)/2)-tw/2, 
-			height-barBuffer-lBuffer-lBuffer-th), 
-			scaleText, fill=(0,0,0), font=font)
-	
-	# ...or bottom right
-	else:
+	# draw scale bar...
 			
-		# add background
-		draw.rectangle([(width-pxScaleBar-lBuffer-lBuffer-barBuffer, 
-			height-barBuffer-lBuffer-lBuffer-tickHeight),
-			(width-barBuffer,height-barBuffer)], 
-			outline=(0,0,0), fill=(255,255,255))
-	
-		# add lines
-		draw.line([
-			(width-lBuffer-pxScaleBar-barBuffer, height-tickHeight-barBuffer), 
-			(width-lBuffer-pxScaleBar-barBuffer, height-lBuffer-barBuffer), 
-			(width-lBuffer-barBuffer, height-lBuffer-barBuffer), 
-			(width-lBuffer-barBuffer, height-tickHeight-barBuffer)], 
-			fill=(0, 0, 0), width=1)
-	
-		# add label
-		draw.text(( 
-			(width-lBuffer-pxScaleBar/2) - tw/2, 
-			height-barBuffer-lBuffer-lBuffer-th), 
-			scaleText, fill=(0,0,0), font=font)
+	# add background
+	draw.rectangle([
+		(width-pxScaleBar-lBuffer-lBuffer-barBuffer, 
+		height-barBuffer-lBuffer-lBuffer-tickHeight),
+		(width-barBuffer,height-barBuffer)], 
+		outline=(0,0,0), fill=(255,255,255))
+
+	# add lines
+	draw.line([
+		(width-lBuffer-pxScaleBar-barBuffer, height-tickHeight-barBuffer), 
+		(width-lBuffer-pxScaleBar-barBuffer, height-lBuffer-barBuffer), 
+		(width-lBuffer-barBuffer, height-lBuffer-barBuffer), 
+		(width-lBuffer-barBuffer, height-tickHeight-barBuffer)], 
+		fill=(0, 0, 0), width=1)
+
+	# add label
+	draw.text(
+		(width-lBuffer-pxScaleBar/2-tw/2, 
+		height-barBuffer-lBuffer-th), 
+		scaleText, fill=(0,0,0), font=font)
