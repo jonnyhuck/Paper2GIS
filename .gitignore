@@ -4,6 +4,12 @@ mapbox-osm-bright-f1c8780/
 OSMBright/
 OSMBright-Blossom
 
+# virtualenv stuff
+bin/
+include/
+lib/
+zbar/
+pip-selfcheck.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
