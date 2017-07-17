@@ -41,6 +41,10 @@ Example command:
 python mapgen.py -a -253416.76422779588028789 -b 7076444.70266312919557095 -c -244881.40985959535464644 -d 7080278.71288163959980011 -e 27700 -f out.png
 ```
 
+would give:
+
+![out.png](images/out.png)
+
 `python mapgen.py -h` will give further information for now.
 
 ## Map Extractor
