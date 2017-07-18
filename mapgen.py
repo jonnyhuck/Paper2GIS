@@ -20,14 +20,13 @@ def mm2px(mm, dpi=96):
 	return int(ceil(mm * dpi / 25.4))
 
 
-def addScaleBar(m, mapImg):
+def getScaleBar(m):
 	"""
-	* Add a scalebar to a map, at a sensible width of approx 20% the width of the map
+	* Construct a quick and dirty scalebar, at a sensible width of approx 20% the width of the map
+	* Returned as a PIL Image object
 	*
 	* Parameters:
-	*  - m: 		mapnik Map object
-	*  - mapImg:	PIL Image object for the exported mapnik map
-	*  - left:	boolean value describing whether it should be drawn on the left (True) or right (False)
+	*  - m: 		mapnik Map object 
 	"""
 
 	# get the m per pixel on the map
@@ -50,48 +49,44 @@ def addScaleBar(m, mapImg):
 		scaleText = str(int(mScaleBar/1000)) + "km"
 	else:
 		scaleText = str(int(mScaleBar)) + "m"
+		
+	# set scale bar positioning parameters
+	lBuffer    = mm2px(2)	# distance from the line to the end of the box
+	tickHeight = mm2px(3)	# height of the tick marks
+	
+	# new image for scalebar
+	scalebarImg = Image.new('RGB', (int(pxScaleBar+lBuffer+lBuffer), lBuffer+lBuffer+tickHeight), 'white')
 	
 	# get PIL context to draw on
-	draw = ImageDraw.Draw(mapImg)
-	
-	# dimensions of the PIL image (replaces use of m.width and m.height in the GitHub version)
-	width, height = mapImg.size
+	sb_draw = ImageDraw.Draw(scalebarImg)
 
 	# prepare a font
 	font = ImageFont.truetype('./open-sans/OpenSans-Regular.ttf', 12)
 	
 	# get the dimensions of the text
-	tw, th = draw.textsize(scaleText, font=font)
+	tw, th = sb_draw.textsize(scaleText, font=font)
 	
-	# set scale bar positioning parameters
-	barBuffer  = mm2px(5)	# distance from scale bar to edge of image
-	lBuffer    = 5	# distance from the line to the end of the background
-	tickHeight = 12	# height of the tick marks
-	
-	# draw scale bar...
-			
+	sbw, sbh = scalebarImg.size
+		
 	# add background
-	draw.rectangle([
-		(width-pxScaleBar-lBuffer-lBuffer-barBuffer, 
-		height-barBuffer-lBuffer-lBuffer-tickHeight),
-		(width-barBuffer,height-barBuffer)], 
-		outline=(0,0,0), fill=(255,255,255))
+	sb_draw.rectangle([
+		(1, 1), (sbw-1, sbh-1)], 
+		outline=('black'), fill=('white'))
 
 	# add lines
-	draw.line([
-		(width-lBuffer-pxScaleBar-barBuffer, height-tickHeight-barBuffer), 
-		(width-lBuffer-pxScaleBar-barBuffer, height-lBuffer-barBuffer), 
-		(width-lBuffer-barBuffer, height-lBuffer-barBuffer), 
-		(width-lBuffer-barBuffer, height-tickHeight-barBuffer)], 
-		fill=(0, 0, 0), width=1)
-
+	sb_draw.line([
+		(lBuffer, sbh-tickHeight-lBuffer), 
+		(lBuffer, sbh-lBuffer),
+		(lBuffer+pxScaleBar, sbh-lBuffer), 
+		(lBuffer+pxScaleBar, sbh-tickHeight-lBuffer)], 
+		fill='black', width=1)
+ 
 	# add label
-	draw.text(
-		(width-lBuffer-pxScaleBar/2-tw, 
-		height-barBuffer-lBuffer-th), 
-		scaleText, fill=(0,0,0), font=font)
-
-
+	sb_draw.text(
+		((sbw-tw)/2, sbh-tickHeight-lBuffer-mm2px(1.5)), 
+		scaleText, fill='black', font=font)
+	
+	return scalebarImg
 
 
 '''
@@ -173,6 +168,9 @@ carto OSMBright/project.mml > OSMBright/style.xml
 w_mm = 297
 h_mm = 210
 
+# the gap between the map and the qr code etc
+map_buffer = mm2px(3)
+
 #  page dimensions in px
 page_w = mm2px(w_mm)
 page_h = mm2px(h_mm)
@@ -187,10 +185,13 @@ page_buffer = mm2px(5)
 qr_size = mm2px(32)
 
 # the height of the map
-map_height = mm2px(160)
+map_height = mm2px(163)
 
 # circle diameter
-ed = mm2px(15)
+ed = mm2px(18)
+
+# gap between circles
+eg = mm2px(2)
 
 stylesheet = 'OSMBright/style.xml'
 # stylesheet = 'OSMBright-Blossom/style.xml'
@@ -199,24 +200,28 @@ stylesheet = 'OSMBright/style.xml'
 '''''''''''''''''''''''''''''''''''''END SETTINGS'''''''''''''''''''''''''''''''''''''''''
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-# make the map using mapnik stylesheet
+# make new blank, page sized image
+page = Image.new('RGB', (page_w, page_h), 'white')
+
+# make the map using mapnik stylesheet, add border and add to the page
 image = 'map.png'
 m = mapnik.Map(page_w - page_buffer*2, map_height)
 mapnik.load_map(m, stylesheet)
 m.zoom_to_box(mapnik.Box2d(float(blX), float(blY), float(trX), float(trY)))
 mapnik.render_to_file(m, image)
 map = ImageOps.expand(Image.open('map.png'), border=2, fill='black')
-
-# make new blank, page sized image
-page = Image.new('RGB', (page_w, page_h), 'white')
-
-# open the north arrow
-north = Image.open('north.png')
-
-# put the map and the qrcode on the page
 page.paste(map, (page_buffer, page_buffer))
-page.paste(qrcode.resize((qr_size, qr_size)), (page_buffer, map_height+mm2px(13)))
-page.paste(north.resize((qr_size-page_buffer, qr_size-page_buffer)), (page_buffer + qr_size + page_buffer, map_height+mm2px(13)+page_buffer/2))
+
+# add qr code to the map
+page.paste(qrcode.resize((qr_size, qr_size)), (page_buffer, map_height+map_buffer+page_buffer))
+
+# open the north arrow and add to the page
+north = Image.open('north.png').resize((qr_size-page_buffer, qr_size-page_buffer))
+page.paste(north, (page_buffer + qr_size + page_buffer, map_height+map_buffer+page_buffer/2+page_buffer))
+
+# add a scalebar to the page
+scalebar = getScaleBar(m)
+page.paste(scalebar, (page_buffer*3 + qr_size + north.size[0], map_height+map_buffer+page_buffer/2+page_buffer))
 
 # add some circles for dempster-shafer - get drawing context for page
 draw = ImageDraw.Draw(page)
@@ -228,8 +233,8 @@ x = page_buffer
 for i in xrange(5):
 	
 	# draw circles 5mm apart for each iteration
-	draw.ellipse([page_w-x-ed, map_height+mm2px(17), page_w-x, map_height+mm2px(17)+ed], fill='white', outline='black')
-	x += ed + 3
+	draw.ellipse([page_w-x-ed, page_buffer+map_height+map_buffer+page_buffer/2, page_w-x, page_buffer+map_height+map_buffer+page_buffer/2+ed], fill='white', outline='black')
+	x += ed + eg
 
 # prepare a font
 font = ImageFont.truetype('./open-sans/OpenSans-Regular.ttf', 12)
@@ -240,13 +245,11 @@ tw, th = draw.textsize(uid, font=font)
 # add attribution text
 year = str(datetime.today().year)
 attributionText = "".join(["Paper2GIS Copyright ", year, " Dr Jonny Huck: https://github.com/jonnyhuck/paper2gis. Map data Copyright ", year, " OpenStreetMap Contributors"])
-draw.text((page_buffer, map_height+mm2px(1.5) + th), attributionText, fill='black', font=font)
+draw.text((page_buffer, page_h-mm2px(3)-th), attributionText, fill='black', font=font)
 
 # add uuid text
-draw.text((page_w - tw - page_buffer, map_height+mm2px(1.5) + th), uid, fill='black', font=font)
-
-# add a scalebar to the bottom left of the map
-addScaleBar(m, page)
+# draw.text((page_w - tw - page_buffer, map_height+mm2px(1.5) + th), uid, fill='black', font=font)
+draw.text((page_buffer*3 + qr_size + north.size[0] + (scalebar.size[0]/2) - tw/2, map_height+map_buffer+mm2px(1.5)+(page_buffer/2)+scalebar.size[1]+page_buffer), uid, fill='black', font=font)
 
 # save the result
 page.save(filepath, 'PNG')
