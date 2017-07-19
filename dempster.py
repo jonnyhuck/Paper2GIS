@@ -51,6 +51,11 @@ cv2.drawContours(crop_img, questionCnts, -1, (0,255,0), 2)
 cv2.imshow("cropped", crop_img)
 cv2.waitKey(0)
 
+
+'''
+HERE
+
+
 # loop over the sorted contours
 for (j, c) in enumerate(cnts):
 	# construct a mask that reveals only the current "bubble" for the question
