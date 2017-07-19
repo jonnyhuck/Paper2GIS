@@ -1,25 +1,13 @@
-import sys
-import cv2
-import osr
-import gdal
-import zbar
-import math
-import getopt
+import sys, cv2, osr, gdal, zbar, getopt
 import numpy as np
 from PIL import Image
 
-##
-# Aligns two images so that they can be diffed more effectively 
-# @author jonnyhuck
-##
+
 def homogrify(img2, img1, loweDistance):
-
-# Had a vague notion that this might be better as it will only compare the QR an ARUco codes,
-#  possibly a slight improvement, but not massive, and certainly not perfect. A better 
-# approach than this would be a blank versio of the map anyway
-#     ret1, img1 = cv2.threshold(img1, 90, 255, cv2.THRESH_BINARY)
-#     img2 = cv2.adaptiveThreshold(img2,255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 501, 2)
-
+	"""
+	* Aligns two images so that they can be diffed more effectively 
+	"""
+	
     # the number of matches required to line up the image
     MIN_MATCH_COUNT = 12 # used to be 10
 
@@ -71,13 +59,11 @@ def homogrify(img2, img1, loweDistance):
         return None
 
 
-
-##
-# Find and read the QR code, extracting the coordinates of the TL and BR corners
-# @author jonnyhuck
-##
 def qrToGeo(a):
-       
+	"""
+	* Find and read the QR code, extracting the coordinates of the TL and BR corners
+	"""
+	
     # create a reader
     scanner = zbar.ImageScanner()
 
@@ -107,12 +93,10 @@ def qrToGeo(a):
     return np.array(data.split(",")).astype(np.float)
 
 
-
-##
-# Gets the difference between the two images (blur to denoise)
-# @author jonnyhuck
-##
 def getDiff(diffThreshold, refImg, tgtImg, demo):
+	"""
+	* Gets the difference between the two images (blur to denoise)
+	"""
 
     ret1,thresh1 = cv2.threshold(refImg, diffThreshold, 255, cv2.THRESH_BINARY) #127
 #     ret2,thresh2 = cv2.threshold(tgtImg, diffThreshold, 255, cv2.THRESH_BINARY) #127
@@ -133,12 +117,10 @@ def getDiff(diffThreshold, refImg, tgtImg, demo):
     return diff
 
 
-
-##
-# Write the image to a geotiff
-# @author jonnyhuck
-##
 def toGeoTiff(geoData, w, h, filename):
+	"""
+	* Write the image to a geotiff
+	"""
 
     # Opens source dataset
     src_ds = gdal.Open("diff.png")
@@ -174,62 +156,11 @@ def toGeoTiff(geoData, w, h, filename):
     src_ds = None
 
 
-##
-# Mask the QR Code, arUco tags and North Arrow (all likely to cause noise)
-# Works because outputs are the same size as inputs...
-# This takes in a CV Numpy Array Image and returns a PIL Image for saving, therefore is the
-#  final step in the process.
-# @author jonnyhuck
-##
-def doMasking(map, size, borderMask):
-
-    # calculate sizes
-    size = int(size)
-    size2 = int(size / 2)
-    size3 = int(size * 0.75)
-    pil = Image.fromarray(map)
-    w,h = pil.size
-
-    # make a mask
-    m1 = Image.new("RGB", (size,size), "white")
-    m2 = Image.new("RGB", (size2,size2), "white")
-    m3 = Image.new("RGB", (size3,size3), "white")
-    m4 = Image.new("RGB", (w,borderMask), "white")
-    m5 = Image.new("RGB", (borderMask,h), "white")
-
-    # cover QR
-    pil.paste(m1,(0,0))
-    
-    # cover arUco tags    
-    pil.paste(m2,(w-size2,0))
-    pil.paste(m2,(w-size2, h-size2))
-    pil.paste(m2,(0, h-size2))
-    
-    # cover north arrow
-    pil.paste(m3,(w-(size3+10), h-(size2+10+size3)))
-    
-    # cover border
-    pil.paste(m4,(0,0))
-    pil.paste(m4,(0,h-borderMask))
-    pil.paste(m5,(0,0))
-    pil.paste(m5,(w-borderMask,0))
-    
-    # clean up
-    del(m1)
-    del(m2)
-    del(m3)
-    del(m4)
-    del(m5)
-    
-    return pil
-
-
-##
-# Main Function
-# @author jonnyhuck
-##
 def main(argv):
-   
+	"""
+	* Main Function
+	"""
+	
     try:
         opts, args = getopt.getopt(argv, "hdsr:t:o:k:b:l:c:")
     except getopt.GetoptError:
@@ -292,23 +223,19 @@ def main(argv):
     # diff the aligned maps
     diffMap = getDiff(diffThreshold, referenceMap, homoMap, demo)
     
-    
-    
     # erode and dilate the image to remove noise from the map alignment
     kernel = np.ones((kernelSize,kernelSize), np.uint8) # was 3,3
-#     kernel2 = np.ones((17,14), np.uint8)
     opened = cv2.morphologyEx(diffMap, cv2.MORPH_OPEN, kernel)
+#     kernel2 = np.ones((17,14), np.uint8)
 #     eroded = cv2.erode(diffMap, kernel)
 #     opened = cv2.dilate(diffMap, kernel2)
 
-    
-    
     # threshold the differenced image
     ret,out = cv2.threshold(opened, 60, 255, cv2.THRESH_BINARY_INV)
 #     ret,out = cv2.threshold(diffMap, 60, 255, cv2.THRESH_BINARY_INV)
     
-    # mask out the QR code, arUco tags and north arrow, return as image
-    finalImg = doMasking(out, geoData[5], borderSize)
+    # convert from numpy array to image
+    finalImg = Image.fromarray(out)
 
     # write to file...
     finalImg.save("diff.png")
@@ -324,9 +251,6 @@ def main(argv):
         finalImg.show()
 
 
-##
 # Python nonsense...
-# @author jonnyhuck
-##
 if __name__ == "__main__":
     main(sys.argv[1:])

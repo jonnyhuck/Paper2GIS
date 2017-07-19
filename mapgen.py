@@ -236,6 +236,9 @@ for i in xrange(5):
 	draw.ellipse([page_w-x-ed, page_buffer+map_height+map_buffer+page_buffer/2, page_w-x, page_buffer+map_height+map_buffer+page_buffer/2+ed], fill='white', outline='black')
 	x += ed + eg
 
+# these are the values needed to crop out the dempster-shafer bit...
+print page_w-x+page_buffer, map_height+page_buffer*2
+
 # prepare a font
 font = ImageFont.truetype('./open-sans/OpenSans-Regular.ttf', 12)
 
