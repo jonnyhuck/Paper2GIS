@@ -237,7 +237,7 @@ for i in xrange(5):
 	x += ed + eg
 
 # these are the values needed to crop out the dempster-shafer bit...
-print page_w-x+page_buffer, map_height+page_buffer*2
+print page_w-x, map_height+page_buffer
 
 # prepare a font
 font = ImageFont.truetype('./open-sans/OpenSans-Regular.ttf', 12)
