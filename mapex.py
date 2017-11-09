@@ -139,7 +139,7 @@ def toGeoTiff(geoData, w, h, filename):
 	# gt = [-7916400, 100, 0, 5210940, 0, -100]	# This comes from the QR code
 	resolutionX = (geoData[2] - geoData[0]) / w
 	resolutionY = (geoData[3] - geoData[1]) / h
-	gt = [geoData[0], resolutionX, 0, geoData[1], 0, -resolutionY]
+	gt = [geoData[0], resolutionX, 0, geoData[3], 0, -resolutionY]
 
 	# Set location
 	dst_ds.SetGeoTransform(gt)
