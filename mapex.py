@@ -164,7 +164,7 @@ parser.add_argument('-r','--reference', help='the reference image', required = T
 parser.add_argument('-m','--map', help='the reference map', required = True)
 parser.add_argument('-t','--target', help='the target image', required = True)
 parser.add_argument('-o','--output', help='the name of the output file', required = False, default='out.tif')
-parser.add_argument('-k','--kernel_size', help='the size of the kernel', required = False, default=7)
+parser.add_argument('-k','--kernel_size', help='the size of the kernel', required = False, default=5)
 parser.add_argument('-b','--border_size', help='the border size', required = False, default=50)
 parser.add_argument('-l','--lowe_distance', help='the lowe distance threshold', required = False, default=0.5)
 parser.add_argument('-c','--diff_threshold', help='the % threshold for image differencing', required = False, default=90)
