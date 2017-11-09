@@ -6,7 +6,7 @@ All sizes in pixels unless otehrwise stated with _mm in variable name
 @author jonnyhuck
 """
 
-# python mapgen.py -a -253416.76422779588028789 -b 7076444.70266312919557095 -c -244881.40985959535464644 -d 7080278.71288163959980011 -e 27700 -f out.png
+# python mapgen.py -a -253416.7 -b 7076444.7 -c -244881.4 -d 7080278.7 -e 3857 -f out.png
 
 import mapnik, qrcode, argparse, uuid
 from datetime import datetime
@@ -96,7 +96,7 @@ print iface.mapCanvas().extent().asWktCoordinates()
 '''
 
 # parse user arguments
-parser = argparse.ArgumentParser(description='Perform viewshed calculations')
+parser = argparse.ArgumentParser(description='Paper2GIS Map Generator')
 parser.add_argument('-a','--bl_x', help='bottom left x coord', required = True)
 parser.add_argument('-b','--bl_y', help='bottom left y coord', required = True)
 parser.add_argument('-c','--tr_x', help='top right x coord', required = True)
@@ -139,8 +139,10 @@ qr = qrcode.QRCode(
 # get unique number hex (truncate to 8 characters)
 uid = uuid.uuid4().hex[:8]
 
+print ','.join([blX, blY, trX, trY, epsg, uid])
+
 # add data to qr object, 'make' and export to image
-qr.add_data(''.join(["[", blX, ",", blY, ",", trX, ",", trY, ",", epsg, ",", uid, "]"]))
+qr.add_data(','.join([blX, blY, trX, trY, epsg, uid]))
 qr.make(fit=True)
 qrcode = qr.make_image()
 

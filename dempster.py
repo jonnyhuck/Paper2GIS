@@ -62,8 +62,8 @@ for c in contours:
 print "I can see", len(contours), "bubbles, with a mass of", ds_mass
 
 # switch back to BGR and draw contours
-crop_img = cv2.cvtColor(crop_img,cv2.COLOR_GRAY2BGR)
-cv2.drawContours(crop_img, questionCnts, -1, (0,255,0), 2)
+# crop_img = cv2.cvtColor(crop_img,cv2.COLOR_GRAY2BGR)
+# cv2.drawContours(crop_img, questionCnts, -1, (0,255,0), 2)
 
 # show the result
 # cv2.imshow("cropped", crop_img)
