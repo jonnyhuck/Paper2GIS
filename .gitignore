@@ -9,3 +9,8 @@ pip-selfcheck.json
 node_modules
 data
 .DS_Store
+samples
+demo
+out.png
+out copy.png
+out.tif

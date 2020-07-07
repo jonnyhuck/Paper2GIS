@@ -1,19 +1,21 @@
 """
-Generate maps for use with the Paper2GIS system
-
-All sizes in pixels unless otherwise stated with _mm in variable name
-
-@author jonnyhuck
-
-carto OSMBright/project.mml > OSMBright/style.xml && node test.js && python mapgen.py
+* Generate maps for use with the Paper2GIS system
+* This no longer actually produces tha map image - this is now handeled by test.js
+*  (as seen in the below workflow)
+*
+* All sizes in pixels unless otherwise stated with _mm in variable name
+*
+* @author jonnyhuck
+*
+* carto OSMBright/project.mml > OSMBright/style.xml && node test.js && python mapgen.py
 """
 
 # python mapgen.py -a -253416.7 -b 7076444.7 -c -244881.4 -d 7080278.7 -e 3857 -f out.png
 
 import qrcode, uuid
 from datetime import datetime
-from PIL import Image, ImageOps, ImageDraw, ImageFont
 from math import floor, log10, ceil
+from PIL import Image, ImageOps, ImageDraw, ImageFont
 
 def mm2px(mm, dpi=96):
 	"""
