@@ -1,5 +1,9 @@
 /**
  * Simple Node.js Mapnik renderer
+ *
+ * NB: neeed to deactivate conda to be able to run it
+ *
+ * TODO: add CL args so this can be called from within mapgen.py
  **/
 
 function mm2px(mm, dpi) {

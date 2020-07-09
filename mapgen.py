@@ -7,15 +7,21 @@
 *
 * @author jonnyhuck
 *
+* NB: Need to deactivate conda to be able to run node bit
 * carto OSMBright/project.mml > OSMBright/style.xml && node test.js && python mapgen.py
 """
 
 # python mapgen.py -a -253416.7 -b 7076444.7 -c -244881.4 -d 7080278.7 -e 3857 -f out.png
 
-import qrcode, uuid
+from uuid import uuid4
+from qrcode import QRCode
+from numpy.random import rand
 from datetime import datetime
+from PIL.ImageOps import expand
 from math import floor, log10, ceil
-from PIL import Image, ImageOps, ImageDraw, ImageFont
+from qrcode.constants import ERROR_CORRECT_L
+from PIL import Image, ImageDraw, ImageFont
+
 
 def mm2px(mm, dpi=96):
 	"""
@@ -65,22 +71,15 @@ The border parameter controls how many boxes thick the border should be (the def
 '''
 
 # init qrcode object
-qr = qrcode.QRCode(
+qr = QRCode(
     version=1,
-    error_correction=qrcode.constants.ERROR_CORRECT_L,
+    error_correction=ERROR_CORRECT_L,
     box_size=10,
     border=4,
 )
 
 # get unique number hex (truncate to 8 characters)
-uid = uuid.uuid4().hex[:8]
-
-print(','.join([blX, blY, trX, trY, epsg, uid]))
-
-# add data to qr object, 'make' and export to image
-qr.add_data(','.join([blX, blY, trX, trY, epsg, uid]))
-qr.make(fit=True)
-qrcode = qr.make_image()
+uid = uuid4().hex[:8]
 
 # page dimensions in mm
 w_mm = 297
@@ -97,7 +96,7 @@ page_h = mm2px(h_mm)
 dpi = 96
 
 # buffer around page in mm
-page_buffer = mm2px(5)
+page_buffer = mm2px(3)
 
 # qr code size
 qr_size = mm2px(32)
@@ -105,6 +104,8 @@ qr_size = mm2px(32)
 # the height of the map
 map_height = 1436
 
+# scaling for the noise border
+divider = 10
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 '''''''''''''''''''''''''''''''''''''END SETTINGS'''''''''''''''''''''''''''''''''''''''''
@@ -113,11 +114,28 @@ map_height = 1436
 # make new blank, page sized image
 page = Image.new('RGB', (page_w, page_h), 'white')
 
-map = ImageOps.expand(Image.open('map.png'), border=4, fill='black')
+# open the map and add black border
+map = expand(expand(Image.open('map.png'), border=4, fill='black'), border=2, fill='white')
+
+# generate random colours
+noise = rand((map_height + page_buffer*2 + 6*2)//divider, page_w//divider, 3) * 255
+
+# turn random noise into greyscale image
+noise_im = Image.fromarray(noise.astype('uint8')).resize((noise.shape[1]*divider, noise.shape[0]*divider), Image.NEAREST).convert('L')
+page.paste(noise_im, (0, 0))
+
+# add the map to the image
 page.paste(map, (page_buffer, page_buffer))
 
+# add data to qr object, 'make' and export to image
+qr.add_data(','.join([blX, blY, trX, trY, epsg, str(page_buffer+6), str(page_buffer+6), str(page_buffer+map.size[0]-6), str(page_buffer+map.size[1]-6), uid]))
+qr.make(fit=True)
+qrcode_im = qr.make_image()
+
+print(','.join([blX, blY, trX, trY, epsg, str(page_buffer+6), str(page_buffer+6), str(page_buffer+map.size[0]-6), str(page_buffer+map.size[1]-6), uid]))
+
 # add qr code to the map
-page.paste(qrcode.resize((qr_size, qr_size)), (page_w - page_buffer - qr_size, map_height + map_buffer + page_buffer))
+page.paste(qrcode_im.resize((qr_size, qr_size)), (page_w - page_buffer - qr_size, map_height + map_buffer + page_buffer))
 
 # open the north arrow and add to the page
 north = Image.open('north.png').resize((qr_size - page_buffer, qr_size - page_buffer))
