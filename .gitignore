@@ -1,8 +1,4 @@
 # local stuff not needed
-blossom/
-mapbox-osm-bright-f1c8780/
-OSMBright/
-OSMBright-Blossom
 *.pyc
 package-lock.json
 pip-selfcheck.json
@@ -11,6 +7,6 @@ data
 .DS_Store
 samples
 demo
-out.png
-out copy.png
 out.tif
+timnadata
+out

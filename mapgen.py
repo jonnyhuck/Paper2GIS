@@ -86,7 +86,7 @@ w_mm = 297
 h_mm = 420
 
 # the gap between the map and the qr code etc
-map_buffer = mm2px(3)
+map_buffer = mm2px(6)
 
 #  page dimensions in px
 page_w = mm2px(w_mm)
@@ -99,7 +99,7 @@ dpi = 96
 page_buffer = mm2px(3)
 
 # qr code size
-qr_size = mm2px(32)
+qr_size = mm2px(30)
 
 # the height of the map
 map_height = 1436
