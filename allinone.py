@@ -312,10 +312,10 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 
 	# extract the map and store the result in the tif file
-	# try:
-	run_map_extract(args.reference, args.target, args.output, args.lowe_distance,
-		int(args.threshold), int(args.kernel), int(args.homo_matches), int(args.min_area),
-		float(args.min_ratio), int(args.buffer), args.convex_hull, args.demo)
-	# except Exception as e:
-	# 	print(f"ERROR: {e}")
-	# 	exit()
+	try:
+		run_map_extract(args.reference, args.target, args.output, args.lowe_distance,
+			int(args.threshold), int(args.kernel), int(args.homo_matches), int(args.min_area),
+			float(args.min_ratio), int(args.buffer), args.convex_hull, args.demo)
+	except Exception as e:
+		print(f"ERROR: {e}")
+		exit()
