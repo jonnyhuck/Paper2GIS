@@ -33,7 +33,7 @@ map.load('./OSMBright/style.xml', function(err,map) {
     if (err) throw err;
 
     // set the zoom and dimensions
-    map.zoomToBox([-844518.0759830498136580, 7741060.5331264697015285, -820571.3187695243395865, 7772566.3288495466113091]);
+    map.zoomToBox([1920835.627, 6375494.894, 1921741.171, 6376788.906]);
     var im = new mapnik.Image(width, height);
 
     // render the map

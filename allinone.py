@@ -178,7 +178,7 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 			# convert the geometry to shapely format
 			geom = shape(feature['geometry'])
 
-			# if too small, drop (eitehr convex hull or regular geom)
+			# if too small, drop (either convex hull or regular geom)
 			the_area = geom.convex_hull.area if convex_hull else geom.area
 			if the_area < min_area:
 				continue

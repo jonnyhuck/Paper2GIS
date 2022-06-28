@@ -1,12 +1,17 @@
-# local stuff not needed
 *.pyc
+
 package-lock.json
 pip-selfcheck.json
 node_modules
-data
+
 .DS_Store
-samples
+
+data
 demo
+
+out/*
+in/*.jpg
+
+map.png
 out.tif
-timnadata
-out
+

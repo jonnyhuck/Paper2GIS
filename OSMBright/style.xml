@@ -122,21 +122,6 @@
     </Datasource>
   </Layer>
 
-<Style name="contours" filter-mode="first" opacity="0.6">
-  <Rule>
-    <LineSymbolizer stroke-width="0.5" stroke="#ad6f69" smooth="1" />
-  </Rule>
-</Style>
-<Layer name="contours"
-  status="on"
-  srs="+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over">
-    <StyleName>contours</StyleName>
-    <Datasource>
-       <Parameter name="file"><![CDATA[/Users/jonnyhuck/Dropbox/Manchester/Research/Paper2GIS/barra/data/barra_contours_40.shp]]></Parameter>
-       <Parameter name="type"><![CDATA[shape]]></Parameter>
-    </Datasource>
-  </Layer>
-
 <Style name="landuse_gen0" filter-mode="first">
   <Rule>
     <MaxScaleDenominator>50000000</MaxScaleDenominator>
@@ -1030,71 +1015,8 @@
 
 <Style name="buildings" filter-mode="first">
   <Rule>
-    <MaxScaleDenominator>12500</MaxScaleDenominator>
-    <MinScaleDenominator>5000</MinScaleDenominator>
-    <Filter>([type] = 'hedge')</Filter>
-    <PolygonSymbolizer fill="#aaaaaa" />
-    <LineSymbolizer stroke="#919191" stroke-width="0.4" />
-  </Rule>
-  <Rule>
-    <MaxScaleDenominator>50000</MaxScaleDenominator>
-    <MinScaleDenominator>12500</MinScaleDenominator>
-    <Filter>([type] = 'hedge')</Filter>
-    <PolygonSymbolizer fill="#aaaaaa" />
-    <LineSymbolizer stroke="#9d9d9d" stroke-width="0.2" />
-  </Rule>
-  <Rule>
-    <MaxScaleDenominator>5000</MaxScaleDenominator>
-    <Filter>([type] = 'hedge')</Filter>
-    <BuildingSymbolizer fill="#c3d9ad" height="1.25" />
-  </Rule>
-  <Rule>
-    <MaxScaleDenominator>200000</MaxScaleDenominator>
-    <MinScaleDenominator>50000</MinScaleDenominator>
-    <Filter>([type] = 'hedge')</Filter>
-    <PolygonSymbolizer fill="#aaaaaa" />
-  </Rule>
-  <Rule>
-    <MaxScaleDenominator>12500</MaxScaleDenominator>
-    <MinScaleDenominator>5000</MinScaleDenominator>
-    <Filter>([type] != 'hedge')</Filter>
-    <PolygonSymbolizer fill="#aaaaaa" />
-    <LineSymbolizer stroke="#919191" stroke-width="0.4" />
-  </Rule>
-  <Rule>
-    <MaxScaleDenominator>50000</MaxScaleDenominator>
-    <MinScaleDenominator>12500</MinScaleDenominator>
-    <Filter>([type] != 'hedge')</Filter>
-    <PolygonSymbolizer fill="#aaaaaa" />
-    <LineSymbolizer stroke="#9d9d9d" stroke-width="0.2" />
-  </Rule>
-  <Rule>
-    <MaxScaleDenominator>5000</MaxScaleDenominator>
-    <Filter>([type] != 'hedge')</Filter>
-    <BuildingSymbolizer fill="#aaaaaa" height="1.25" />
-  </Rule>
-  <Rule>
-    <MaxScaleDenominator>200000</MaxScaleDenominator>
-    <MinScaleDenominator>50000</MinScaleDenominator>
-    <Filter>([type] != 'hedge')</Filter>
-    <PolygonSymbolizer fill="#aaaaaa" />
-  </Rule>
-  <Rule>
-    <MaxScaleDenominator>12500</MaxScaleDenominator>
-    <MinScaleDenominator>5000</MinScaleDenominator>
-    <PolygonSymbolizer fill="#aaaaaa" />
-    <LineSymbolizer stroke="#919191" stroke-width="0.4" />
-  </Rule>
-  <Rule>
-    <MaxScaleDenominator>50000</MaxScaleDenominator>
-    <MinScaleDenominator>12500</MinScaleDenominator>
-    <PolygonSymbolizer fill="#aaaaaa" />
-    <LineSymbolizer stroke="#9d9d9d" stroke-width="0.2" />
-  </Rule>
-  <Rule>
-    <MaxScaleDenominator>200000</MaxScaleDenominator>
-    <MinScaleDenominator>50000</MinScaleDenominator>
-    <PolygonSymbolizer fill="#aaaaaa" />
+    <PolygonSymbolizer fill="#e4e0e0" />
+    <LineSymbolizer stroke="#ccc5c5" stroke-width="0.4" />
   </Rule>
 </Style>
 <Layer name="buildings"
