@@ -1,0 +1,6 @@
+__pycache__/
+resources/__pycache__/
+demo/*
+*.qgz
+/*.png
+out/*
