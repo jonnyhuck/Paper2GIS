@@ -6,7 +6,9 @@ The figure below (reproduced from [Denwood et al., 2022](https://link.springer.c
 
 ![Paper2GIS Workflow](https://media.springernature.com/full/springer-static/image/art%3A10.1007%2Fs10109-022-00386-6/MediaObjects/10109_2022_386_Fig4_HTML.jpg?as=webp)
 
-Paper2GIS no longer supports map production via Mapnik Stylesheets, as the Mapnik [Python Bindings](https://github.com/mapnik/python-mapnik)  are challenging for people to build and appear to have very limited support / development at the moment. Instead, you now must provide a map image that will be used instead. For now, I would recommend making your map **1084 x 1436 @ 96dpi**, and ensuring that there are no very rark areas (e.g. prominent black labels), which may be misinterpreted as markup. It is always good to 
+Paper2GIS no longer supports map production via Mapnik Stylesheets, as the Mapnik [Python Bindings](https://github.com/mapnik/python-mapnik)  are challenging for people to build and appear to have very limited support / development at the moment. Instead, you now must provide a map image that will be used instead. For now, I would recommend making your map **1084 x 1436 @ 96dpi**, and ensuring that there are no very rark areas (e.g. prominent black labels), which may be misinterpreted as markup. 
+
+It is always good to thoroughly test the extractor before using a Paper2GIS layout 'in the wild', and remember that the extract software has loads of settings to help make sure that you get a nice result!
 
 ## Contents:
 
