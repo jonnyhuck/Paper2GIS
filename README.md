@@ -1,16 +1,19 @@
 # Paper2GIS
 
-Paper2GIS is a participatory GIS / mapping platform that allows participants to draw markup onto a paper map, which can then be automatically extracted into georeferenced Shapefile or GeoTiff datasets. 
+Paper2GIS is a participatory GIS / mapping platform that allows participants to draw markup onto a paper map (using a **thick black marker pen**), which can then be automatically extracted into georeferenced Shapefile or GeoTiff datasets. Paper2GIS was created in 2016 for students to use on a field course in the Indian Himalaya. It has since been used for a range of teaching research applications. 
 
 The figure below (reproduced from [Denwood et al., 2022](https://link.springer.com/article/10.1007/s10109-022-00386-6)) briefly describes the process: A) take an image of a Paper2GIS layout with markup. The software then identifies B) the layout in the photograph, C) the map in the layout, D) the markup on the map. This is then output either as a Shapefile or a GeoTiff.
 
 ![Paper2GIS Workflow](https://media.springernature.com/full/springer-static/image/art%3A10.1007%2Fs10109-022-00386-6/MediaObjects/10109_2022_386_Fig4_HTML.jpg?as=webp)
+
+Paper2GIS no longer supports map production via Mapnik Stylesheets, as the Mapnik [Python Bindings](https://github.com/mapnik/python-mapnik)  are challenging for people to build and appear to have very limited support / development at the moment. Instead, you now must provide a map image that will be used instead. For now, I would recommend making your map **1084 x 1436 @ 96dpi**, and ensuring that there are no very rark areas (e.g. prominent black labels), which may be misinterpreted as markup. It is always good to 
 
 ## Contents:
 
 * [Usage](#usage)
 * [Installation](#installation)
 * [Bulk Extraction of Shapefiles](#bulk-extraction-of-shapefiles)
+* [Future Development](#future-development)
 * [Licensing](#licensing)
 * [References](#references)
 
@@ -25,8 +28,6 @@ Example call:
 ```bash
 python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585
 ```
-
-
 
 Full details:
 
@@ -203,6 +204,27 @@ shopt -u nullglob
 
 echo "done."
 ```
+
+## Future Development:
+
+I am planning to add the following features to Paper2GIS:
+
+#### High Priority:
+
+* batch processing for extraction
+* the ability to draw a map based on OSM tiles. 
+* implement better support for maps of different sizes and resolutions
+* support for landscape Paper2GIS layouts
+* The ability to add an artificial frame to pictures of layouts that are too close to the edge of the photograph
+* Improved output cleaning for GeoTiff outputs (so that it is the same as for the Shapefile outputs)
+* Centroid / representative point extraction
+
+#### Lower Priority:
+
+* Alpha-shape (Concave Hull) extraction
+* The ability to interpret markup outlines as solid polygons
+
+If you would like to request a feature, you can do so by opening an [Issue](https://github.com/jonnyhuck/Paper2GIS/issues).
 
 ## Licensing
 
