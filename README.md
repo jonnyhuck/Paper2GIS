@@ -206,7 +206,7 @@ echo "done."
 
 ## Licensing
 
-The software is licensed under the [GNU General Public License v3](LICENSE). Bundled with it is the Open Sans font, which is licensed under the [Apache License v2]("resources/Apache License.txt").
+The software is licensed under the [GNU General Public License v3](LICENSE). Bundled with it is the Open Sans font, which is licensed under the [Apache License v2](resources/Apache_License.txt).
 
 ## References
 
