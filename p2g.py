@@ -71,6 +71,8 @@ p2g_parser.add_argument('-d','--demo', choices=[True, False], help='the output d
 p2g_parser.add_argument('-e','--error_messages', choices=[True, False], help='suppress error messages', required = False, default = False)
 
 
+''' PARSE ARGS AND RUN '''
+
 # parse arguments
 args = parser.parse_args()
 
