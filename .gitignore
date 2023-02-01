@@ -1,8 +1,9 @@
 .DS_Store
 */.DS_Store
 __pycache__/
-resources/__pycache__/
-demo/*
+*/__pycache__/
+demo
+out
+in
 *.qgz
 /*.png
-out/*
