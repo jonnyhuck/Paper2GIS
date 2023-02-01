@@ -2,6 +2,8 @@
 
 Paper2GIS is a participatory GIS / mapping platform that allows participants to draw markup onto a paper map, which can then be automatically extracted into georeferenced Shapefile or GeoTiff datasets. 
 
+The figure below (reproduced from [Denwood et al., 2022](https://link.springer.com/article/10.1007/s10109-022-00386-6)) briefly describes the process: A) take an image of a Paper2GIS layout with markup. The software then identifies B) the layout in the photograph, C) the map in the layout, D) the markup on the map. This is then output either as a Shapefile or a GeoTiff.
+
 ![Paper2GIS Workflow](https://media.springernature.com/full/springer-static/image/art%3A10.1007%2Fs10109-022-00386-6/MediaObjects/10109_2022_386_Fig4_HTML.jpg?as=webp)
 
 ## Contents:
@@ -204,7 +206,7 @@ echo "done."
 
 ## Licensing
 
-The software is licensed under the [GNU General Public License v3](LICENSE). Bundled with it is the Open Sans font, which is licensed under the [Apache License v2](resources/Apache License.txt).
+The software is licensed under the [GNU General Public License v3](LICENSE). Bundled with it is the Open Sans font, which is licensed under the [Apache License v2]("resources/Apache License.txt").
 
 ## References
 
