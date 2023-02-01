@@ -4,7 +4,6 @@
 shopt -s nullglob
 
 # convert any iphone images to jpg and fix spaces in file names
-#  (requires imagemagick)
 for FILE in *.HEIC 
 do 
     FILEJPG=`echo $FILE | sed "s/.HEIC/.jpg/"`
@@ -21,8 +20,8 @@ do
 
     # run the extractor
     FILENEW=`echo $FILE | sed "s/.jpg/.shp/"`
-    echo python ../allinone.py --reference ../out.png --target $FILE -o $FILENEW
-    python ../allinone.py --reference ../out.png --target $FILE -o $FILENEW
+    echo python ../p2g.py extract --reference ../out.png --target $FILE -o $FILENEW
+    python ../p2g.py extract --reference ../out.png --target $FILE -o $FILENEW
     echo ""
 done
 
