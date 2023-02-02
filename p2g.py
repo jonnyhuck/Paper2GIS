@@ -34,14 +34,14 @@ g2p_parser.add_argument('-e','--epsg', help='EPSG code for the map CRS', require
 g2p_parser.add_argument('-r','--resolution', type=int, help='Resolution of the input map image (dpi)', required=False, default='96')
 
 # path to the map input (this or tiles=True is required)
-g2p_parser.add_argument('-i','--input', help='the input map image (file path)', required=False, default='map.png')
+g2p_parser.add_argument('-i','--input', help='the input map image (file path) - this is ignored if --tiles=True', required=False, default='map.png')
 
 # path to the output file
 g2p_parser.add_argument('-o','--output', help='the output data file (file path)', required=False, default='out.png')
 
 # create a map image (this or input file path is required)
 # TODO: Needs implementing
-g2p_parser.add_argument('-t','--tiles', choices=[True, False], help='create a OSM map', required=False, default=False)
+g2p_parser.add_argument('-t','--tiles', choices=[True, False], help='create a OSM map (ignores --input)', required=False, default=False)
 
 
 ''' SET UP ARGS FOR EXTRACT '''

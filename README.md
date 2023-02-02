@@ -167,7 +167,7 @@ cd paper2gis-master
 
 ### Windows
 
-I have never attempted to install Paper2GIS on Wihndows, but I can't see any reason why this should not be possible. Please do contact me if you either need this, and would like some advice, or have done this and would like to contribute some instructions. 
+I have never attempted to install Paper2GIS on Windows, but I can't see any reason why this should not be possible. Please do contact me if you either need this, and would like some advice, or have done this and would like to contribute some instructions. 
 
 ## Bulk Extraction and Shapefiles
 
