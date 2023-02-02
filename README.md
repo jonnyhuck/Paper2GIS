@@ -1,8 +1,8 @@
 # Paper2GIS
 
-Paper2GIS is a participatory GIS / mapping platform that allows participants to draw markup onto a paper map (using a **thick black marker pen**), which can then be automatically extracted into georeferenced Shapefile or GeoTiff datasets. Paper2GIS was created in 2016 for students to use on a field course in the Indian Himalaya. It has since been used for a range of teaching research applications. 
+Paper2GIS is a participatory GIS / mapping platform that allows participants to draw markup onto a paper map (using a **thick black marker pen**), which can then be automatically extracted into georeferenced Shapefile or GeoTiff datasets. THis is intended to reduce the impact of *digital divides* on the collection of participatory map data. Paper2GIS was created in 2016 for students to use on a field course in the Indian Himalaya. It has since been used for a range of teaching research applications, some of which are listed in the [References](#references) section of this document. 
 
-The figure below (reproduced from [Denwood et al., 2022](https://link.springer.com/article/10.1007/s10109-022-00386-6)) briefly describes the process: A) take an image of a Paper2GIS layout with markup. The software then identifies B) the layout in the photograph, C) the map in the layout, D) the markup on the map. This is then output either as a Shapefile or a GeoTiff.
+The figure below (reproduced from [Denwood et al., 2022](https://link.springer.com/article/10.1007/s10109-022-00386-6)) briefly describes the process: A) take an image of a Paper2GIS layout with markup. The software then identifies B) the layout in the photograph, C) the map in the layout, D) the markup on the map, and extracts it either to a Shapefile or a GeoTiff.
 
 ![Paper2GIS Workflow](https://media.springernature.com/full/springer-static/image/art%3A10.1007%2Fs10109-022-00386-6/MediaObjects/10109_2022_386_Fig4_HTML.jpg?as=webp)
 
@@ -110,39 +110,39 @@ options:
 
 ## Installation
 
-The below examples use conda to manage pythonl installations, but there is no reason that you could not do this with `pip` and `vitrualenv`, or any other similar package management / virtual environment system.
+The below examples use conda to manage the Python installations, but there is no reason that you could not do this with `pip` and `vitrualenv`, or any other similar package management / virtual environment system.
 
 ### Mac
 
-Install X Code tools
+* Install X Code tools:
 
 ```bash
 xcode-select --install
 ```
 
-Install Homebrew
+* Install Homebrew:
 
 ```
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-Install C library dependencies
+* Install C library dependencies:
 
 ```bash
 brew install zbar opencv gdal geos imagemagick
 ```
 
-[Install Miniconda / Anaconda](https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/macos.html) 
+* [Install Miniconda / Anaconda](https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/macos.html)
 
-Set up conda environment (note the need to use `pip` for `opencv-contrib-python`)
+* Set up conda environment (note the need to use `pip` for `opencv-contrib-python`):
 
 ```bash
-conda create -n paper2gis -c conda-forge -y python=3 fiona rasterio pyzbar qrcode pillow 
+conda create -n paper2gis -c conda-forge -y python=3 fiona rasterio pyzbar qrcode pillow cartopy 
 conda activate paper2gis
 pip install opencv-contrib-python
 ```
 
-Get Paper2GIS
+* Get Paper2GIS:
 
 ```bash
 git clone git@github.com:jonnyhuck/Paper2GIS.git
@@ -151,23 +151,23 @@ cd paper2gis-master
 
 ### Linux (Ubuntu)
 
-Install C library dependencies
+* Install C library dependencies:
 
 ```bash
 sudo apt install libopencv-dev python3-opencv libgdal-dev gdal-bin libzbar0 libgeos3.10.2
 ```
 
-[Install Miniconda / Anaconda](https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/linux.html)
+* [Install Miniconda / Anaconda](https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/linux.html)
 
-Set up conda environment (note the need to use `pip` for `opencv-contrib-python`)
+* Set up conda environment (note the need to use `pip` for `opencv-contrib-python`):
 
 ```bash
-conda create -n paper2gis -c conda-forge -y python=3 fiona rasterio pyzbar qrcode pillow
+conda create -n paper2gis -c conda-forge -y python=3 fiona rasterio pyzbar qrcode pillow cartopy
 conda activate paper2gis
 pip install opencv-contrib-python
 ```
 
-Get Paper2GIS
+* Get Paper2GIS:
 
 ```bash
 git clone git@github.com:jonnyhuck/Paper2GIS.git
@@ -222,17 +222,17 @@ I am planning to add the following features to Paper2GIS:
 
 #### High Priority:
 
-* support for landscape Paper2GIS layouts
-* implement better support for layouts of different sizes and resolutions
-* batch processing for extraction
+* Restore support for landscape Paper2GIS layouts
+* Implement better support for layouts of different sizes and resolutions
+* Implement batch processing for extraction
 * Improved output cleaning for GeoTiff outputs (so that it is the same as for the Shapefile outputs)
 * Centroid / representative point extraction (enabling the collection of point data)
 * The ability to add an artificial frame to pictures of layouts that are too close to the edge of the photograph
 
 #### Lower Priority:
 
-* Alpha-shape (Concave Hull) extraction
-* The ability to interpret markup outlines as solid polygons
+* Implement alpha-shape (Concave Hull) extraction
+* Implement the ability to interpret markup outlines as solid polygons (dependent upon the above)
 * The ability to draw maps from a range of tile sources, not just OSM
 * A QGIS Plugin to interface with Paper2GIS
 
@@ -254,4 +254,4 @@ Paper2GIS has been described in the academic literature (all are open access).
 
 [Huck, J. J., Dunning, I., Lee, P., Lowe, T., Quek, E., Weerasinghe, S.,  & Wintie, D. (2017). Paper2GIS: a self-digitising,  paper-based PPGIS. In *Geocomp 2017: Proceedings of the 14th International Conference on Geocomputation*.](https://www.geog.leeds.ac.uk/groups/geocomp/2017/papers/80.pdf)
 
-[Denwood, T., Huck, J., & Lindley, S. (2021). Paper2GIS: Going postal in the midst of a pandemic. In *Proceedings of the 29th Geographical Information Science UK Conference*.](https://zenodo.org/record/4665392)
+[Denwood, T., Huck, J.J., & Lindley, S. (2021). Paper2GIS: Going postal in the midst of a pandemic. In *Proceedings of the 29th Geographical Information Science UK Conference*.](https://zenodo.org/record/4665392)
