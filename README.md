@@ -25,16 +25,23 @@ Paper2GIS accessed via a Python-based CLI package (`p2g.py`) that can be used to
 
 ### Create a Paper2GIS layout from a map image (`p2g.py generate`)
 
-Example call:
+Example call with a pre-existing map (`1084 x 1436px @ 96dpi`):
 
-```bash
+```
 python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585
+```
+
+Example call with a map drawn using OSM tiles:
+
+```
+python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585 -i test.png -o test2.png -t True -z 10
 ```
 
 Full details:
 
 ```
 usage: Paper2GIS generate [-h] -a BL_X -b BL_Y -c TR_X -d TR_Y [-e EPSG] [-r RESOLUTION] [-i INPUT] [-o OUTPUT] [-t {True,False}]
+                          [-f FADE] [-z ZOOM]
 
 options:
   -h, --help            show this help message and exit
@@ -46,18 +53,20 @@ options:
   -r RESOLUTION, --resolution RESOLUTION
                         Resolution of the input map image (dpi)
   -i INPUT, --input INPUT
-                        the input map image (file path)
+                        the input map image (file path) - this is ignored if --tiles=True
   -o OUTPUT, --output OUTPUT
                         the output data file (file path)
   -t {True,False}, --tiles {True,False}
-                        create a OSM map
+                        create a OSM map (ignores --input)
+  -f FADE, --fade FADE  intensity of the white filter over the tiles (0-255)
+  -z ZOOM, --zoom ZOOM  requested zoom level of OSM tiles (necessary if using tiles)
 ```
 
 ### Extract markup from an image of a used Paper2GIS layout (`p2g.py extract`)
 
 Example call:
 
-```bash
+```
 python p2g.py extract --reference map.png --target in.jpg -o out.shp --threshold 100 --kernel 0
 ```
 
@@ -213,18 +222,19 @@ I am planning to add the following features to Paper2GIS:
 
 #### High Priority:
 
-* batch processing for extraction
-* the ability to draw a map based on OSM tiles. 
-* implement better support for maps of different sizes and resolutions
 * support for landscape Paper2GIS layouts
-* The ability to add an artificial frame to pictures of layouts that are too close to the edge of the photograph
+* implement better support for layouts of different sizes and resolutions
+* batch processing for extraction
 * Improved output cleaning for GeoTiff outputs (so that it is the same as for the Shapefile outputs)
-* Centroid / representative point extraction
+* Centroid / representative point extraction (enabling the collection of point data)
+* The ability to add an artificial frame to pictures of layouts that are too close to the edge of the photograph
 
 #### Lower Priority:
 
 * Alpha-shape (Concave Hull) extraction
 * The ability to interpret markup outlines as solid polygons
+* The ability to draw maps from a range of tile sources, not just OSM
+* A QGIS Plugin to interface with Paper2GIS
 
 If you would like to request a feature, you can do so by opening an [Issue](https://github.com/jonnyhuck/Paper2GIS/issues).
 
