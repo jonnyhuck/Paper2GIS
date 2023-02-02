@@ -16,7 +16,7 @@ from PIL import Image, ImageDraw, ImageFont
 from qrcode.constants import ERROR_CORRECT_L
 
 
-def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None):
+def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85):
 	"""
 	* Return an OSM map as a PIL image
 	* 
@@ -26,13 +26,20 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None):
 	*     w, h: desired dimensions of the output image (overides the map bounds)
 	*     dpi: resolution of the output image (default 96)
 	*     crs: the crs of the input coordinates (default Web Mercator)
+	*     fade: (0-255) the intensity of the white filter
 	"""
 
 	# load additional libraries
 	from io import BytesIO
+	from PIL.Image import BILINEAR
 	from matplotlib import pyplot as plt
 	from cartopy.io.img_tiles import OSM
 	from numpy import reshape, frombuffer, uint8
+
+	# user warning if zoom has not been set
+	if zoom == 0:
+		print("\nWARNING: the tile zoom level is set to 0 (default), which will not likely give a satisfactory \
+			map unless you are drawing a map of the wole world.\n")
 
 	# get OSM tile interface
 	tiler = OSM()
@@ -59,8 +66,9 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None):
 		bl_x = mid_point - half_map_width
 		tr_x = mid_point + half_map_width
 
-	# create a figure and axis
-	fig = plt.figure()
+	# create a figure at the desired size and a GeoAxis
+	# TODO: This ia a bodge where I make the map too big then shrink - shouldn't be necessary
+	fig = plt.figure(figsize=(w/dpi*1.5, h/dpi*1.5), dpi=dpi)
 	ax = fig.add_subplot(1, 1, 1, projection=tiler.crs)
 
 	# set the desired map extent on the axis
@@ -80,9 +88,18 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None):
 	img_arr = reshape(frombuffer(io_buf.getvalue(), dtype=uint8), newshape=(int(b.height), int(b.width), -1))
 	io_buf.close()
 
-	# convert array to image, fade and return
-	map = Image.fromarray(img_arr)
-	map.putalpha(200)
+	# convert array to image
+	map = Image.fromarray(img_arr).convert('RGBA')
+
+	# overlay white filter and return
+	filter = Image.new('RGBA', map.size, 'white')
+	filter.putalpha(fade)
+	map.paste(filter, (0,0), filter)
+
+	# convert back to RGB and return
+	map.convert('RGB')
+	# TODO: This is a bodge where I make the map too big then shrink - shouldn't be necessary
+	map = map.resize((w,h), resample=BILINEAR)
 	return map
 
 
@@ -93,12 +110,12 @@ def mm2px(mm, dpi=96):
 	return int(ceil(mm * dpi / 25.4))
 
 
-def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles):
+def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, zoom):
 	"""
-	Generate a Paper2GIS layout from an existing map
+	Generate a Paper2GIS layout from an existing map, or generate one from tiles
 	
-	TODO: implement resolution options
-	TODO: add args for page settings (presets and orientations?)
+	TODO: implement resolution options?
+	TODO: add args for page settings (presets and orientations?), tile zoom level and fade
 	---
 	Info on QR Args:
 		- The qrcode version parameter is an integer from 1 to 40 that controls the size of the QR Code (the smallest, version 1, is a 21x21 matrix). 
@@ -116,7 +133,6 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles):
 		- The box_size parameter controls how many pixels each box of the QR code is.
 		- The border parameter controls how many boxes thick the border should be (the default is 4, which is the minimum according to the specs).
 	"""
-
 	# init qrcode object
 	qr = QRCode(
 		version=1,
@@ -165,7 +181,7 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles):
 
 	# get input image or create one from tiles
 	try:
-		in_map = get_osm_map(blX, blY, trX, trY, epsg, dpi) if tiles else Image.open(in_path)
+		in_map = get_osm_map(float(blX), float(blY), float(trX), float(trY), zoom, 1084, 1436, fade) if tiles else Image.open(in_path)
 	except FileNotFoundError:
 		print("ERROR: cannot open input map file, please check file path")
 		exit()

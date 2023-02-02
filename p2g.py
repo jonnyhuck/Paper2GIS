@@ -41,7 +41,9 @@ g2p_parser.add_argument('-o','--output', help='the output data file (file path)'
 
 # create a map image (this or input file path is required)
 # TODO: Needs implementing
-g2p_parser.add_argument('-t','--tiles', choices=[True, False], help='create a OSM map (ignores --input)', required=False, default=False)
+g2p_parser.add_argument('-t','--tiles', choices=['True', 'False'], help='create a OSM map (ignores --input)', required=False, default='False')
+g2p_parser.add_argument('-f','--fade', type=int, help='intensity of the white filter over the tiles (0-255)', required=False, default=85)
+g2p_parser.add_argument('-z','--zoom', type=int, help='requested zoom level of OSM tiles (necessary if using tiles)', required=False, default=0)
 
 
 ''' SET UP ARGS FOR EXTRACT '''
@@ -64,11 +66,10 @@ p2g_parser.add_argument('-x','--min_ratio', type=float, help='the ratio (long/sh
 p2g_parser.add_argument('-b','--buffer', type=float, help='buffer around the edge used for data cleaning', required = False, default = 10)
 
 # for vector output - do you want a convex hull or not?
-p2g_parser.add_argument('-c','--convex_hull', choices=[True, False], help='do you want the raw output or a convex hull (vector only)?', required = False, default = False)
+p2g_parser.add_argument('-c','--convex_hull', choices=['True', 'False'], help='do you want the raw output or a convex hull (vector only)?', required = False, default = 'False')
 
 # runtime settings
-p2g_parser.add_argument('-d','--demo', choices=[True, False], help='the output data file', required = False, default = False)
-p2g_parser.add_argument('-e','--error_messages', choices=[True, False], help='suppress error messages', required = False, default = False)
+p2g_parser.add_argument('-d','--demo', choices=['True', 'False'], help='the output data file', required = False, default = 'False')
 
 
 ''' PARSE ARGS AND RUN '''
@@ -80,11 +81,12 @@ args = parser.parse_args()
 if args.command == "generate":
     from paper2gis.gis2paper import run_generate
     run_generate(args.bl_x, args.bl_y, args.tr_x, args.tr_y, args.epsg, 
-        args.resolution, args.input, args.output, args.tiles)
+        args.resolution, args.input, args.output, args.tiles == 'True', 
+        args.fade, args.zoom)
 
 # extract markup from a photograph of a map and store the result in the specified file
 elif args.command == "extract":
     from paper2gis.paper2gis import run_extract
     run_extract(args.reference, args.target, args.output, args.lowe_distance,
         args.threshold, args.kernel, args.homo_matches, args.min_area,
-        args.min_ratio, args.buffer, args.convex_hull, args.demo)
+        args.min_ratio, args.buffer, args.convex_hull== 'True', args.demo== 'True')
