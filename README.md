@@ -6,7 +6,10 @@ The figure below (reproduced from [Denwood et al., 2022](https://link.springer.c
 
 ![Paper2GIS Workflow](https://media.springernature.com/full/springer-static/image/art%3A10.1007%2Fs10109-022-00386-6/MediaObjects/10109_2022_386_Fig4_HTML.jpg?as=webp)
 
-Paper2GIS no longer supports map production via Mapnik Stylesheets, as the Mapnik [Python Bindings](https://github.com/mapnik/python-mapnik)  are challenging for people to build and appear to have very limited support / development at the moment. Instead, you now must provide a map image that will be used instead. For now, I would recommend making your map **1084 x 1436 @ 96dpi**, and ensuring that there are no very rark areas (e.g. prominent black labels), which may be misinterpreted as markup. 
+Paper2GIS no longer supports map production via Mapnik Stylesheets, as the Mapnik [Python Bindings](https://github.com/mapnik/python-mapnik)  are challenging for people to build and appear to have very limited support / development at the moment. Instead, you can now either:
+
+* provide a map image that will be used instead. For now, I would recommend making your map **1084 x 1436 @ 96dpi**, and ensuring that there are no very rark areas (e.g. prominent black labels), which may be misinterpreted as markup. 
+* provide your desired map bounds and Paper2GIS will generate a map for you using OSM map tiles. You control the desired zoom level of the map tiles that it uses, so that you can make sure that the map looks as good as possible. To get an idea, if you go to [OpenStreetMap](https://www.openstreetmap.org/), you can see the zoom level currently visible on the screen by looking at the URL. For example, if the URL is `https://www.openstreetmap.org/#map=18/2.78882/32.29586`, then the zooml level is **18** (the number that immediately follows `#map=`). The range is between `0` (for the whole world on a single tile) and `19` (the finest level of detail). 
 
 It is always good to thoroughly test the extractor before using a Paper2GIS layout 'in the wild', and remember that the extract software has loads of settings to help make sure that you get a nice result!
 
