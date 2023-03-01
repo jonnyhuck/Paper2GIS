@@ -58,6 +58,7 @@ p2g_parser.add_argument('-i','--threshold', type=int, help='the threshold the ta
 p2g_parser.add_argument('-m','--homo_matches', type=int, help='the number of matches required for homography', required = False, default=12)
 
 # TODO: Needs implementing
+# TODO: perhaps also make this happen automatically if not enough matches are found? Need to experiment...
 p2g_parser.add_argument('-f','--frame', type=int, help='a frame to add round the image if the map is too close to the edge', required = False, default=0)
 
 # for vector data cleaning

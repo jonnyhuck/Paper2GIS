@@ -258,7 +258,7 @@ I am planning to add the following features to Paper2GIS:
 * Implement batch processing for extraction
 * Improved output cleaning for GeoTiff outputs (so that it is the same as for the Shapefile outputs)
 * Centroid / representative point extraction (enabling the collection of point data)
-* The ability to add an artificial frame to pictures of layouts that are too close to the edge of the photograph
+* The ability to add an artificial frame to pictures of layouts that are too close to the edge of the photograph (including automated version where low number of matches are detected)
 
 #### Lower Priority:
 
