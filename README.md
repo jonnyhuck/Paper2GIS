@@ -17,6 +17,10 @@ It is always good to thoroughly test the extractor before using a Paper2GIS layo
 
 * [Usage](#usage)
 * [Installation](#installation)
+  * [Mac](#mac)
+  * [Ubuntu](#ubuntu)
+  * [Windows](#windows)
+
 * [Bulk Extraction of Shapefiles](#bulk-extraction-of-shapefiles)
 * [Future Development](#future-development)
 * [Licensing](#licensing)
@@ -37,7 +41,7 @@ python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934
 Example call with a map drawn using OSM tiles:
 
 ```
-python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585 -i test.png -o test2.png -t True -z 10
+python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585 -o test2.png -t True -z 10
 ```
 
 Full details:
@@ -152,7 +156,7 @@ git clone git@github.com:jonnyhuck/Paper2GIS.git
 cd paper2gis-master
 ```
 
-### Linux (Ubuntu)
+### Ubuntu
 
 * Install C library dependencies:
 
@@ -179,7 +183,31 @@ cd paper2gis-master
 
 ### Windows
 
-I have never attempted to install Paper2GIS on Windows, but I can't see any reason why this should not be possible. Please do contact me if you either need this, and would like some advice, or have done this and would like to contribute some instructions. 
+* Install GEOS and GDAL:
+
+Download the [OSGeo4W Network Installer](https://trac.osgeo.org/osgeo4w/), run it and select **Advanced Install** &rarr; **Install from the Internet** and the accept the defaults on the **Select Root install Directory**, **Set Local Package Directory** and **Select your Internet Connection** pages. When you are asked to **Choose a Download Site**, choose the top option in the list.
+
+Now, will be looking at a long list of things that you can install. Expand the **Libraries** and select the following options by clicking once on the **Skip** label next to the following (this changes it from Skip to the current version): 
+
+* gdal: The GDAL/OGR library and commandline tools
+* geos: The GEOS geometry library (Runtime)
+
+Now click **Next** and the software will present you with a longer list of software that comprises the dependencies of your selected packages. Make sure the **Install these packages to meet dependencies** box at the bottom is ticked and click **Next**. The download process will begin and you may be presented with one or more license agreements that you must **Agree** before proceeding. When the **Installation Complete** message appears, click **Finish**.
+
+* [Install Miniconda / Anaconda](https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/windows.html)
+
+```bash
+conda create -n paper2gis -c conda-forge -y python=3 fiona rasterio pyzbar qrcode pillow cartopy
+conda activate paper2gis
+pip install opencv-contrib-python pyzbar
+```
+
+* Get Paper2GIS:
+
+```bash
+git clone git@github.com:jonnyhuck/Paper2GIS.git
+cd paper2gis-master
+```
 
 ## Bulk Extraction and Shapefiles
 
