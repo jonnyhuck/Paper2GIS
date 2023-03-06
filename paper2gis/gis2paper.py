@@ -100,7 +100,7 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85):
 	map.convert('RGB')
 	# TODO: This is a bodge where I make the map too big then shrink - shouldn't be necessary
 	map = map.resize((w,h), resample=BILINEAR)
-	return map
+	return (bl_x, bl_y, tr_x, tr_y), map
 
 
 def mm2px(mm, dpi=96):
@@ -180,11 +180,19 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 	page = Image.new('RGB', (page_w, page_h), 'white')
 
 	# get input image or create one from tiles
-	try:
-		in_map = get_osm_map(float(blX), float(blY), float(trX), float(trY), zoom, 1084, 1436, fade) if tiles else Image.open(in_path)
-	except FileNotFoundError:
-		print("ERROR: cannot open input map file, please check file path")
-		exit()
+	if tiles:
+		# note we might need to overwrite the dimensions here as the map gets adjusted to fit the template
+		c, in_map = get_osm_map(float(blX), float(blY), float(trX), float(trY), zoom, 1084, 1436, fade) 
+		blX = str(c[0])
+		blY = str(c[1])
+		trX = str(c[2])
+		trY = str(c[3])
+	else:
+		try:
+			Image.open(in_path)
+		except FileNotFoundError:
+			print("ERROR: cannot open input map file, please check file path")
+			exit()
 
 	# open the map and add black border
 	map = expand(expand(in_map, border=4, fill='black'), border=2, fill='white')
