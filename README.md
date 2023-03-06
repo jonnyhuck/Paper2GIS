@@ -4,7 +4,7 @@ Paper2GIS is a participatory GIS / mapping platform that allows participants to 
 
 The extraction workflow is illustrated below: you simply generate a map, draw on it and take a photograph, then pass the photograph back to the software to extract it either to a Shapefile or a GeoTiff (Shapefile shown).
 
-![Paper2GIS Demo](Resources/images/demo.png)
+![Paper2GIS Demo](resources/images/demo.png)
 
 Paper2GIS no longer supports map production via Mapnik Stylesheets, as the Mapnik [Python Bindings](https://github.com/mapnik/python-mapnik)  are challenging for people to build and appear to have very limited support / development at the moment. Instead, you can now either:
 
