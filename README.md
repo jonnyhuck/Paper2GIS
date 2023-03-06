@@ -2,9 +2,9 @@
 
 Paper2GIS is a participatory GIS / mapping platform that allows participants to draw markup onto a paper map (using a **thick black marker pen**), which can then be automatically extracted into georeferenced Shapefile or GeoTiff datasets. THis is intended to reduce the impact of *digital divides* on the collection of participatory map data. Paper2GIS was created in 2016 for students to use on a field course in the Indian Himalaya. It has since been used for a range of teaching research applications, some of which are listed in the [References](#references) section of this document. 
 
-The figure below (reproduced from [Denwood et al., 2022](https://link.springer.com/article/10.1007/s10109-022-00386-6)) briefly describes the process: A) take an image of a Paper2GIS layout with markup. The software then identifies B) the layout in the photograph, C) the map in the layout, D) the markup on the map, and extracts it either to a Shapefile or a GeoTiff.
+The extraction workflow is illustrated below: you simply generate a map, draw on it and take a photograph, then pass the photograph back to the software to extract it either to a Shapefile or a GeoTiff (Shapefile shown).
 
-![Paper2GIS Workflow](https://media.springernature.com/full/springer-static/image/art%3A10.1007%2Fs10109-022-00386-6/MediaObjects/10109_2022_386_Fig4_HTML.jpg?as=webp)
+![Paper2GIS Demo](Resources/images/demo.png)
 
 Paper2GIS no longer supports map production via Mapnik Stylesheets, as the Mapnik [Python Bindings](https://github.com/mapnik/python-mapnik)  are challenging for people to build and appear to have very limited support / development at the moment. Instead, you can now either:
 
@@ -259,6 +259,7 @@ I am planning to add the following features to Paper2GIS:
 * Improved output cleaning for GeoTiff outputs (so that it is the same as for the Shapefile outputs)
 * Centroid / representative point extraction (enabling the collection of point data)
 * The ability to add an artificial frame to pictures of layouts that are too close to the edge of the photograph (including automated version where low number of matches are detected)
+* Build in automated conversion of HEIC files
 
 #### Lower Priority:
 
