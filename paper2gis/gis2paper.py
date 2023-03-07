@@ -14,9 +14,23 @@ from datetime import datetime
 from PIL.ImageOps import expand
 from PIL import Image, ImageDraw, ImageFont
 from qrcode.constants import ERROR_CORRECT_L
+from cartopy.io.img_tiles import GoogleTiles
+
+class ShadedReliefESRI(GoogleTiles):
+    """
+    * Custom class for hillshade tiles from ESRI, see: 
+	*	https://stackoverflow.com/questions/37423997/cartopy-shaded-relief
+	"""
+    # shaded relief
+    def _image_url(self, tile):
+        x, y, z = tile
+        url = ('https://server.arcgisonline.com/ArcGIS/rest/services/' \
+               'World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}.jpg').format(
+               z=z, y=y, x=x)
+        return url
 
 
-def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85):
+def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85, hillshade=False, hillshade_alpha=0.25):
 	"""
 	* Return an OSM map as a PIL image
 	* 
@@ -28,7 +42,6 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85):
 	*     crs: the crs of the input coordinates (default Web Mercator)
 	*     fade: (0-255) the intensity of the white filter
 	"""
-
 	# load additional libraries
 	from io import BytesIO
 	from PIL.Image import BILINEAR
@@ -74,14 +87,18 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85):
 	# set the desired map extent on the axis
 	ax.set_extent([bl_x, tr_x, bl_y, tr_y], crs=crs)
 
-	# add the map tiles to the axis
+	# add the map tiles to the axis and get extent
 	# TODO: Can I set zoom level automatically...?
 	ax.add_image(tiler, zoom)
 	b = ax.get_window_extent()
-
+	
+	# add hillshade if needed
+	if hillshade:
+		shade = ShadedReliefESRI()
+		ax.add_image(shade, zoom, alpha=hillshade_alpha)
+	
 	# load map into buffer then array
-	# TODO: This seems to be dependent on screen resolution - I think that the problem is actually
-	#   ax.get_window_extent
+	# TODO: This seems to be dependent on screen resolution - I think that the problem is actually ax.get_window_extent
 	io_buf = BytesIO()
 	fig.savefig(io_buf, format='raw', bbox_inches='tight', pad_inches=0) # dont set dpi?
 	io_buf.seek(0)
@@ -91,8 +108,9 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85):
 	# convert array to image
 	map = Image.fromarray(img_arr).convert('RGBA')
 
-	# overlay white filter and return
+	 # overlay white filter and return (allow for the fade caused by the hillshade if needed)
 	filter = Image.new('RGBA', map.size, 'white')
+	fade = int(fade - (hillshade_alpha * 255) + 0.5) if hillshade else fade
 	filter.putalpha(fade)
 	map.paste(filter, (0,0), filter)
 
@@ -105,33 +123,33 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85):
 
 def mm2px(mm, dpi=96):
 	"""
-	1 inch = 25.4mm 96dpi is therefore...
+	* 1 inch = 25.4mm 96dpi is therefore...
 	"""
 	return int(ceil(mm * dpi / 25.4))
 
 
-def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, zoom):
+def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, zoom, hillshade, hillshade_alpha):
 	"""
-	Generate a Paper2GIS layout from an existing map, or generate one from tiles
-	
-	TODO: implement resolution options?
-	TODO: add args for page settings (presets and orientations?), tile zoom level and fade
-	---
-	Info on QR Args:
-		- The qrcode version parameter is an integer from 1 to 40 that controls the size of the QR Code (the smallest, version 1, is a 21x21 matrix). 
-		Set to None and use the fit parameter when making the code to determine this automatically.
-		- The error_correction parameter controls the error correction used for the QR Code. The following four constants are made available 
-			on the qrcode package:
-				ERROR_CORRECT_L
-					About 7% or less errors can be corrected.
-				ERROR_CORRECT_M (default)
-					About 15% or less errors can be corrected.
-				ERROR_CORRECT_Q
-					About 25% or less errors can be corrected.
-				ERROR_CORRECT_H.
-					About 30% or less errors can be corrected.
-		- The box_size parameter controls how many pixels each box of the QR code is.
-		- The border parameter controls how many boxes thick the border should be (the default is 4, which is the minimum according to the specs).
+	* Generate a Paper2GIS layout from an existing map, or generate one from tiles
+	* 
+	* TODO: implement resolution options?
+	* TODO: add args for page settings (presets and orientations?), tile zoom level and fade
+	* ---
+	* Info on QR Args:
+	* 	- The qrcode version parameter is an integer from 1 to 40 that controls the size of the QR Code (the smallest, version 1, is a 21x21 matrix). 
+	* 	Set to None and use the fit parameter when making the code to determine this automatically.
+	* 	- The error_correction parameter controls the error correction used for the QR Code. The following four constants are made available 
+	* 		on the qrcode package:
+	* 			ERROR_CORRECT_L
+	* 				About 7% or less errors can be corrected.
+	* 			ERROR_CORRECT_M (default)
+	* 				About 15% or less errors can be corrected.
+	* 			ERROR_CORRECT_Q
+	* 				About 25% or less errors can be corrected.
+	* 			ERROR_CORRECT_H.
+	* 				About 30% or less errors can be corrected.
+	* 	- The box_size parameter controls how many pixels each box of the QR code is.
+	* 	- The border parameter controls how many boxes thick the border should be (the default is 4, which is the minimum according to the specs).
 	"""
 	# init qrcode object
 	qr = QRCode(
@@ -182,7 +200,7 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 	# get input image or create one from tiles
 	if tiles:
 		# note we might need to overwrite the dimensions here as the map gets adjusted to fit the template
-		c, in_map = get_osm_map(float(blX), float(blY), float(trX), float(trY), zoom, 1084, 1436, fade) 
+		c, in_map = get_osm_map(float(blX), float(blY), float(trX), float(trY), zoom, 1084, 1436, fade, hillshade=hillshade) 
 		blX = str(c[0])
 		blY = str(c[1])
 		trX = str(c[2])
@@ -212,8 +230,6 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 	qr.make(fit=True)
 	qrcode_im = qr.make_image()
 
-	print(','.join([blX, blY, trX, trY, epsg, str(page_buffer+6), str(page_buffer+6), str(page_buffer+map.size[0]-6), str(page_buffer+map.size[1]-6), uid]))
-
 	# add qr code to the map
 	page.paste(qrcode_im.resize((qr_size, qr_size)), (page_w - page_buffer - qr_size, map_height + map_buffer + page_buffer))
 
@@ -240,11 +256,16 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 
 	# add attribution text
 	year = str(datetime.today().year)
-	attributionText = "".join(["Paper2GIS Copyright ", year, " Dr Jonny Huck: https://github.com/jonnyhuck/paper2gis. Map data Copyright ", year, " OpenStreetMap Contributors"])
-	draw.text((page_buffer, page_h - mm2px(3) - th), attributionText, fill='black', font=font)
+	attribution_text_list = ["Paper2GIS Copyright", year, "Dr Jonny Huck: https://github.com/jonnyhuck/paper2gis."]
+	if tiles:
+		attribution_text_list += ["\nMap data Copyright", year, "OpenStreetMap Contributors."]
+		if hillshade:
+			attribution_text_list += ["Hillshade data Copyright", year, "ESRI, USGS."]
+	attribution_text = " ".join(attribution_text_list)
+	draw.text((page_buffer, page_h - mm2px(3) - th*2), attribution_text, fill='black', font=font)
 
 	# add uuid text
-	draw.text((page_buffer, page_h - mm2px(5) - th*2), uid, fill='black', font=font)
+	draw.text((page_buffer, page_h - mm2px(5) - th*3), uid, fill='black', font=font)
 
 	# validate out_path is a png
 	if out_path[-4:] != ".png":

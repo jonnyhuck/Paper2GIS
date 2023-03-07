@@ -4,6 +4,7 @@ __pycache__/
 */__pycache__/
 demo
 out
-in
+out/*
+in/*.jpg
 *.qgz
 /*.png

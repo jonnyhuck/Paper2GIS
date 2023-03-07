@@ -40,10 +40,11 @@ g2p_parser.add_argument('-i','--input', help='the input map image (file path) - 
 g2p_parser.add_argument('-o','--output', help='the output data file (file path)', required=False, default='out.png')
 
 # create a map image (this or input file path is required)
-# TODO: Needs implementing
 g2p_parser.add_argument('-t','--tiles', choices=['True', 'False'], help='create a OSM map (ignores --input)', required=False, default='False')
 g2p_parser.add_argument('-f','--fade', type=int, help='intensity of the white filter over the tiles (0-255)', required=False, default=85)
 g2p_parser.add_argument('-z','--zoom', type=int, help='requested zoom level of OSM tiles (necessary if using tiles)', required=False, default=0)
+g2p_parser.add_argument('-s','--hillshade', choices=['True', 'False'], help='add hillshade to generated OSM map', required=False, default='False')
+g2p_parser.add_argument('-sa','--hillshadealpha', type=float, help='the alpha value for the hillshade layer', required=False, default=0.25)
 
 
 ''' SET UP ARGS FOR EXTRACT '''
@@ -83,11 +84,11 @@ if args.command == "generate":
     from paper2gis.gis2paper import run_generate
     run_generate(args.bl_x, args.bl_y, args.tr_x, args.tr_y, args.epsg, 
         args.resolution, args.input, args.output, args.tiles == 'True', 
-        args.fade, args.zoom)
+        args.fade, args.zoom, args.hillshade=='True', args.hillshadealpha==0.25)
 
 # extract markup from a photograph of a map and store the result in the specified file
 elif args.command == "extract":
     from paper2gis.paper2gis import run_extract
     run_extract(args.reference, args.target, args.output, args.lowe_distance,
         args.threshold, args.kernel, args.homo_matches, args.min_area,
-        args.min_ratio, args.buffer, args.convex_hull== 'True', args.demo== 'True')
+        args.min_ratio, args.buffer, args.convex_hull=='True')

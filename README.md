@@ -1,17 +1,20 @@
 # Paper2GIS
 
-Paper2GIS is a participatory GIS / mapping platform that allows participants to draw markup onto a paper map (using a **thick black marker pen**), which can then be automatically extracted into georeferenced Shapefile or GeoTiff datasets. THis is intended to reduce the impact of *digital divides* on the collection of participatory map data. Paper2GIS was created in 2016 for students to use on a field course in the Indian Himalaya. It has since been used for a range of teaching research applications, some of which are listed in the [References](#references) section of this document. 
+Paper2GIS is a participatory GIS / mapping platform that allows participants to draw markup onto a paper map (using a **thick black marker pen**), which can then be automatically extracted into georeferenced Shapefile or GeoTiff datasets. This is intended to reduce the impact of *digital divides* on the collection of participatory map data. Paper2GIS was created in 2016 for students to use on a field course in the Indian Himalaya. It has since been used for a range of teaching research applications, some of which are listed in the [References](#references) section of this document. 
 
 The extraction workflow is illustrated below: you simply generate a map, draw on it and take a photograph, then pass the photograph back to the software to extract it either to a Shapefile or a GeoTiff (Shapefile shown).
 
 ![Paper2GIS Demo](resources/images/demo.png)
 
-Paper2GIS no longer supports map production via Mapnik Stylesheets, as the Mapnik [Python Bindings](https://github.com/mapnik/python-mapnik)  are challenging for people to build and appear to have very limited support / development at the moment. Instead, you can now either:
+Paper2GIS no longer supports map generation using Mapnik Stylesheets, as the Mapnik [Python Bindings](https://github.com/mapnik/python-mapnik)  proved to be increasingly challenging for people to build and appear to have very limited support / development at the moment. Instead, you can now either:
 
 * provide a map image that will be used instead. For now, I would recommend making your map **1084 x 1436 @ 96dpi**, and ensuring that there are no very rark areas (e.g. prominent black labels), which may be misinterpreted as markup. 
-* provide your desired map bounds and Paper2GIS will generate a map for you using OSM map tiles. You control the desired zoom level of the map tiles that it uses, so that you can make sure that the map looks as good as possible. To get an idea, if you go to [OpenStreetMap](https://www.openstreetmap.org/), you can see the zoom level currently visible on the screen by looking at the URL. For example, if the URL is `https://www.openstreetmap.org/#map=18/2.78882/32.29586`, then the zooml level is **18** (the number that immediately follows `#map=`). The range is between `0` (for the whole world on a single tile) and `19` (the finest level of detail). 
+* provide your desired map bounds and Paper2GIS will generate a map for you using OSM map tiles. You control the desired zoom level of the map tiles that it uses, so that you can make sure that the map looks as good as possible. To get an idea, if you go to [OpenStreetMap](https://www.openstreetmap.org/), you can see the zoom level currently visible on the screen by looking at the URL. For example, if the URL is `https://www.openstreetmap.org/#map=18/2.78882/32.29586`, then the zoom level is **18** (the number that immediately follows `#map=`). The range is between `0` (for the whole world on a single tile) and `19` (the finest level of detail).If you are using the OSM tiles option, you can also add an optional **hillshade layer** courtesy of ESRI. An example of a Paper2GIS map with and without hillshade is given below:
 
-It is always good to thoroughly test the extractor before using a Paper2GIS layout 'in the wild', and remember that the extract software has loads of settings to help make sure that you get a nice result!
+
+![Hillshade Example](resources/images/hillshade.png)
+
+It is always good to thoroughly test a map using the extractor before using a Paper2GIS layout 'in the wild', and remember that the `extract` software has loads of settings to help make sure that you get a nice result, so don't panic if you don't get a perfect result first time with the default settings!
 
 ## Contents:
 
@@ -47,8 +50,7 @@ python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934
 Full details:
 
 ```
-usage: Paper2GIS generate [-h] -a BL_X -b BL_Y -c TR_X -d TR_Y [-e EPSG] [-r RESOLUTION] [-i INPUT] [-o OUTPUT] [-t {True,False}]
-                          [-f FADE] [-z ZOOM]
+usage: Paper2GIS generate [-h] -a BL_X -b BL_Y -c TR_X -d TR_Y [-e EPSG] [-r RESOLUTION] [-i INPUT] [-o OUTPUT] [-t {True,False}] [-f FADE] [-z ZOOM] [-s {True,False}] [-sa HILLSHADEALPHA]
 
 options:
   -h, --help            show this help message and exit
@@ -67,6 +69,10 @@ options:
                         create a OSM map (ignores --input)
   -f FADE, --fade FADE  intensity of the white filter over the tiles (0-255)
   -z ZOOM, --zoom ZOOM  requested zoom level of OSM tiles (necessary if using tiles)
+  -s {True,False}, --hillshade {True,False}
+                        add hillshade to generated OSM map
+  -sa HILLSHADEALPHA, --hillshadealpha HILLSHADEALPHA
+                        the alpha value for the hillshade layer
 ```
 
 ### Extract markup from an image of a used Paper2GIS layout (`p2g.py extract`)
@@ -117,7 +123,7 @@ options:
 
 ## Installation
 
-The below examples use conda to manage the Python installations, but there is no reason that you could not do this with `pip` and `vitrualenv`, or any other similar package management / virtual environment system.
+The below examples use conda to manage the Python installations, but there is no reason that you could not do this with `pip`,  `virtualenv`, or any other similar package management / virtual environment system.
 
 ### Mac
 
@@ -259,7 +265,7 @@ I am planning to add the following features to Paper2GIS:
 * Improved output cleaning for GeoTiff outputs (so that it is the same as for the Shapefile outputs)
 * Centroid / representative point extraction (enabling the collection of point data)
 * The ability to add an artificial frame to pictures of layouts that are too close to the edge of the photograph (including automated version where low number of matches are detected)
-* Build in automated conversion of HEIC files
+* Build in handling for HEIC (from iPhones)
 
 #### Lower Priority:
 
