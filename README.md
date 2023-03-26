@@ -2,21 +2,15 @@
 
 Paper2GIS is a participatory GIS / mapping platform that allows participants to draw markup onto a paper map (using a **thick black marker pen**), which can then be automatically extracted into georeferenced Shapefile or GeoTiff datasets. This is intended to reduce the impact of *digital divides* on the collection of participatory map data. Paper2GIS was created in 2016 for students to use on a field course in the Indian Himalaya. It has since been used for a range of teaching research applications, some of which are listed in the [References](#references) section of this document. 
 
-The extraction workflow is illustrated below: you simply generate a map, draw on it and take a photograph, then pass the photograph back to the software to extract it either to a Shapefile or a GeoTiff (Shapefile shown).
+The basics of the extraction workflow is illustrated below: you simply generate a map, draw on it and take a photograph, then pass the photograph back to the software to extract it either to a Shapefile or a GeoTiff (Shapefile shown).
 
 ![Paper2GIS Demo](resources/images/demo.png)
 
-Paper2GIS no longer supports map generation using Mapnik Stylesheets, as the Mapnik [Python Bindings](https://github.com/mapnik/python-mapnik)  proved to be increasingly challenging for people to build and appear to have very limited support / development at the moment. Instead, you can now either:
-
-* provide a map image that will be used instead. For now, I would recommend making your map **1084 x 1436 @ 96dpi**, and ensuring that there are no very rark areas (e.g. prominent black labels), which may be misinterpreted as markup. 
-* provide your desired map bounds and Paper2GIS will generate a map for you using OSM map tiles. You control the desired zoom level of the map tiles that it uses, so that you can make sure that the map looks as good as possible. To get an idea, if you go to [OpenStreetMap](https://www.openstreetmap.org/), you can see the zoom level currently visible on the screen by looking at the URL. For example, if the URL is `https://www.openstreetmap.org/#map=18/2.78882/32.29586`, then the zoom level is **18** (the number that immediately follows `#map=`). The range is between `0` (for the whole world on a single tile) and `19` (the finest level of detail).If you are using the OSM tiles option, you can also add an optional **hillshade layer** courtesy of ESRI. An example of a Paper2GIS map with and without hillshade is given below:
-
-
-![Hillshade Example](resources/images/hillshade.png)
-
-It is always good to thoroughly test a map using the extractor before using a Paper2GIS layout 'in the wild', and remember that the `extract` software has loads of settings to help make sure that you get a nice result, so don't panic if you don't get a perfect result first time with the default settings!
-
 ## Contents:
+
+* [Notes](#notes)
+  * [Notes on map generation](#notes-on-map-generation)
+  * [Notes on map extraction](#notes-on-map-extraction)
 
 * [Usage](#usage)
 * [Installation](#installation)
@@ -28,6 +22,24 @@ It is always good to thoroughly test a map using the extractor before using a Pa
 * [Future Development](#future-development)
 * [Licensing](#licensing)
 * [References](#references)
+
+## Notes
+
+### Notes on Map Generation
+
+Paper2GIS no longer supports map generation using Mapnik Stylesheets, as the Mapnik [Python Bindings](https://github.com/mapnik/python-mapnik)  proved to be increasingly challenging for people to build and appear to have very limited support / development at the moment. Instead, you can now either:
+
+* provide a map image that will be used instead. For now, I would recommend making your map **1084 x 1436 @ 96dpi**, and ensuring that there are no very rark areas (e.g. prominent black labels), which may be misinterpreted as markup. 
+* provide your desired map bounds and Paper2GIS will generate a map for you using OSM map tiles. You control the desired zoom level of the map tiles that it uses, so that you can make sure that the map looks as good as possible. To get an idea, if you go to [OpenStreetMap](https://www.openstreetmap.org/), you can see the zoom level currently visible on the screen by looking at the URL. For example, if the URL is `https://www.openstreetmap.org/#map=18/2.78882/32.29586`, then the zoom level is **18** (the number that immediately follows `#map=`). The range is between `0` (for the whole world on a single tile) and `19` (the finest level of detail).If you are using the OSM tiles option, you can also add an optional **hillshade layer** courtesy of ESRI. An example of a Paper2GIS map with and without hillshade is given below:
+
+
+![Hillshade Example](resources/images/hillshade.png)
+
+It is always good to thoroughly test a map using the extractor before using a Paper2GIS layout 'in the wild', and remember that the `extract` software has loads of settings to help make sure that you get a nice result, so don't panic if you don't get a perfect result first time with the default settings!
+
+### Notes on Map Extraction
+
+Markup can be extracted as-is (marked areas will become **polygons**), as **convex hulls**, as **centroids** (point representing the centroid, irrespoective of whether or not it is contained withinthe original polygon), as **representative points** (points that are gurranteed to fall inside the original polygon) or as **polygons from boundaries** (where only the boundary is marked on the map, but a filled polygon is extracted). All extraction can be in the form of either a ShapeFile (`.shp`) or GeoTiff (`.tif`).
 
 ## Usage
 
@@ -86,8 +98,9 @@ python p2g.py extract --reference map.png --target in.jpg -o out.shp --threshold
 Full details:
 
 ```
-usage: Paper2GIS extract [-h] -r REFERENCE -t TARGET [-o OUTPUT] [-l LOWE_DISTANCE] [-k KERNEL] [-i THRESHOLD] [-m HOMO_MATCHES] [-f FRAME] [-a MIN_AREA]
-                         [-x MIN_RATIO] [-b BUFFER] [-c {True,False}] [-d {True,False}] [-e {True,False}]
+usage: Paper2GIS extract [-h] -r REFERENCE -t TARGET [-o OUTPUT] [-l LOWE_DISTANCE] [-k KERNEL] [-i THRESHOLD]
+                         [-m HOMO_MATCHES] [-f FRAME] [-a MIN_AREA] [-x MIN_RATIO] [-b BUFFER] [-cc {True,False}]
+                         [-cx {True,False}] [-cr {True,False}] [-cb {True,False}] [-d {True,False}]
 
 options:
   -h, --help            show this help message and exit
@@ -113,12 +126,16 @@ options:
                         the ratio (long/short) below which features will be rejected
   -b BUFFER, --buffer BUFFER
                         buffer around the edge used for data cleaning
-  -c {True,False}, --convex_hull {True,False}
-                        do you want the raw output or a convex hull (vector only)?
+  -cc {True,False}, --convex_hull {True,False}
+                        store convex hulls of extracted shapes?
+  -cx {True,False}, --centroid {True,False}
+                        store centroids of extracted shapes?
+  -cr {True,False}, --representative point {True,False}
+                        store representative points of extracted shapes?
+  -cb {True,False}, --boundary {True,False}
+                        extract polygons from boundaries (rather than shaded areas)
   -d {True,False}, --demo {True,False}
                         the output data file
-  -e {True,False}, --error_messages {True,False}
-                        suppress error messages
 ```
 
 ## Installation
@@ -259,19 +276,15 @@ I am planning to add the following features to Paper2GIS:
 
 #### High Priority:
 
-* Restore support for landscape Paper2GIS layouts
-* Implement better support for layouts of different sizes and resolutions
+* Implement better support for layouts of different sizes and resolutions, including landscape layouts
 * Implement batch processing for extraction
 * Improved output cleaning for GeoTiff outputs (so that it is the same as for the Shapefile outputs)
-* Centroid / representative point extraction (enabling the collection of point data)
 * The ability to add an artificial frame to pictures of layouts that are too close to the edge of the photograph (including automated version where low number of matches are detected)
-* Build in handling for HEIC (from iPhones)
+* Built in handling for HEIC files (from iPhones)
 
 #### Lower Priority:
 
-* Implement alpha-shape (Concave Hull) extraction
-* Implement the ability to interpret markup outlines as solid polygons (dependent upon the above)
-* The ability to draw maps from a range of tile sources, not just OSM
+* The ability to draw maps from custom tile sources
 * A QGIS Plugin to interface with Paper2GIS
 
 If you would like to request a feature, you can do so by opening an [Issue](https://github.com/jonnyhuck/Paper2GIS/issues).

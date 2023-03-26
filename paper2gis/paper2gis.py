@@ -31,7 +31,7 @@ from os import remove, path, makedirs
 from rasterio import open as rio_open
 from numpy import float32, uint8, ones
 from rasterio.transform import from_bounds
-from shapely.geometry import shape, mapping, LineString
+from shapely.geometry import shape, mapping, LineString, Polygon
 from cv2 import RANSAC, COLOR_BGR2GRAY, MORPH_OPEN, THRESH_BINARY_INV
 from cv2 import findHomography, perspectiveTransform, warpPerspective, morphologyEx, \
 	FlannBasedMatcher, threshold, imwrite, imread, cvtColor, medianBlur, SIFT_create
@@ -137,7 +137,7 @@ def writeTiff(output, opened_map, geodata):
 		out.write(opened_map, 1)
 
 
-def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio, convex_hull):
+def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio, convex_hull, centroid, representative_point, boundary):
 	"""
 	* Clean an output dataset and write to a shapefile
 	* @author jonnyhuck
@@ -193,6 +193,24 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 			if (convex_hull) :
 				out.write({'geometry': mapping(geom.convex_hull),
 					'properties': {'area': geom.convex_hull.area}})
+			
+			# if centroid is desired, save that
+			elif (centroid) :
+				out.write({'geometry': mapping(geom.centroid),
+					'properties': {}})
+
+			# if centroid is desired, save that
+			elif (representative_point) :
+				out.write({'geometry': mapping(geom.representative_point),
+					'properties': {}})
+			
+			# extract polygons from boundaries only
+			if (boundary) :
+
+				# extract the exterior ring and convert to polygon
+				polygon = Polygon(geom.exterior.coords)
+				out.write({'geometry': mapping(polygon),
+					'properties': {'area': geom.convex_hull.area}})
 
 			# otherwise just save the raw geometry
 			else:
@@ -202,7 +220,7 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 
 def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=100,
 	kernel=3, homo_matches=12, min_area=1000, min_ratio=0.2, buffer=10, convex_hull=False,
-	demo=False):
+	centroid=False, representative_point=False, boundary=False, demo=False):
 	"""
 	* Main function: this runs the map extraction, resulting in a file being written
 	*  to the desired location
@@ -268,8 +286,10 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 
 	# output to a raster if the output file extension is .tif (no cleaning)
 	if output[-4:] == ".tif":
+		# TODO: convert to vector, clean then rasterise
 		writeTiff(output, opened_map, geodata)
 
 	# clean the dataset and output to a vector if the output file extension is .shp
 	elif output[-4:] == ".shp":
-		cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio, convex_hull)
+		cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio, 
+		      convex_hull, centroid, representative_point, boundary)

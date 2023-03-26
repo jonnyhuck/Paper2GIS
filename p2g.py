@@ -6,6 +6,7 @@ This is the CLI interface for Paper2GIS, it is used to generate new layouts and 
 Example usage:
     Convert a map to a Paper2GIS layout:
         `python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585`
+        `python p2g.py generate -a -393872.67 -b 7414244.26 -c -340247.96 -d 7476887.78 -o talla-hart-fells-shade.png -t True -z 11 -s True`
 
     Extract Markup from an image of a Paper2GIS layout:
         `python p2g.py extract --reference out.png --target ./data/IMG_9441.jpg -o ./out/path.tif --threshold 100 --kernel 0`
@@ -68,7 +69,10 @@ p2g_parser.add_argument('-x','--min_ratio', type=float, help='the ratio (long/sh
 p2g_parser.add_argument('-b','--buffer', type=float, help='buffer around the edge used for data cleaning', required = False, default = 10)
 
 # for vector output - do you want a convex hull or not?
-p2g_parser.add_argument('-c','--convex_hull', choices=['True', 'False'], help='do you want the raw output or a convex hull (vector only)?', required = False, default = 'False')
+p2g_parser.add_argument('-cc','--convex_hull', choices=['True', 'False'], help='store convex hulls of extracted shapes?', required = False, default = 'False')
+p2g_parser.add_argument('-cx','--centroid', choices=['True', 'False'], help='store centroids of extracted shapes?', required = False, default = 'False')
+p2g_parser.add_argument('-cr','--representative point', choices=['True', 'False'], help='store representative points of extracted shapes?', required = False, default = 'False')
+p2g_parser.add_argument('-cb','--boundary', choices=['True', 'False'], help='extract polygons from boundaries (rather than shaded areas)', required = False, default = 'False')
 
 # runtime settings
 p2g_parser.add_argument('-d','--demo', choices=['True', 'False'], help='the output data file', required = False, default = 'False')
@@ -91,4 +95,6 @@ elif args.command == "extract":
     from paper2gis.paper2gis import run_extract
     run_extract(args.reference, args.target, args.output, args.lowe_distance,
         args.threshold, args.kernel, args.homo_matches, args.min_area,
-        args.min_ratio, args.buffer, args.convex_hull=='True')
+        args.min_ratio, args.buffer, args.convex_hull=='True', 
+        args.representative_point=='True', args.centroid=='True', 
+        args.boundary=='True', args.demo=='True')
