@@ -29,8 +29,8 @@ from fiona import open as fio_open
 from rasterio.features import shapes
 from os import remove, path, makedirs
 from rasterio import open as rio_open
-from numpy import float32, uint8, ones
 from rasterio.transform import from_bounds
+from numpy import float32, uint8, ones, zeros
 from shapely.geometry import shape, mapping, LineString, Polygon
 from cv2 import RANSAC, COLOR_BGR2GRAY, MORPH_OPEN, THRESH_BINARY_INV
 from cv2 import findHomography, perspectiveTransform, warpPerspective, morphologyEx, \
@@ -152,9 +152,12 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 		float(geodata[1]), float(geodata[2]), float(geodata[3]), opened_map.shape[1],
 		opened_map.shape[0]))))
 
-	# write to shapefile
+	# set geometry type for shapefile
+	geom_type = 'Point' if any([centroid, representative_point]) else 'Polygon'
+
+	# open shapefile for writing
 	with fio_open(output, 'w', driver="ESRI Shapefile", crs=f"EPSG:{geodata[4]}",
-		schema={'geometry': 'Polygon', 'properties': {'area':'float'}}) as out:
+		schema={'geometry': geom_type, 'properties': {'area':'float'}}) as out:
 
 		#  this would write the raw records - the equivalent of what you would get in the raster output
 		# out.writerecords(results)
@@ -185,27 +188,28 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 			if min(sides) / max(sides) < min_ratio:
 				continue
 
-			# if intersects edge, drop
+			# if intersects edge, clip it
 			if geom.intersects(edge):
-				continue
+				# TODO: subdivide into individual geoms
+				geom = geom.difference(edge)
 
 			# if convex hull is desired, save that
-			if (convex_hull) :
+			if (convex_hull):
 				out.write({'geometry': mapping(geom.convex_hull),
 					'properties': {'area': geom.convex_hull.area}})
 			
 			# if centroid is desired, save that
-			elif (centroid) :
+			elif (centroid):
 				out.write({'geometry': mapping(geom.centroid),
-					'properties': {}})
+					'properties': {'area': 0}})
 
-			# if centroid is desired, save that
-			elif (representative_point) :
-				out.write({'geometry': mapping(geom.representative_point),
-					'properties': {}})
+			# if rep point is desired, save that
+			elif (representative_point):
+				out.write({'geometry': mapping(geom.representative_point()),
+					'properties': {'area': 0}})
 			
 			# extract polygons from boundaries only
-			if (boundary) :
+			elif (boundary):
 
 				# extract the exterior ring and convert to polygon
 				polygon = Polygon(geom.exterior.coords)
@@ -219,13 +223,17 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 
 
 def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=100,
-	kernel=3, homo_matches=12, min_area=1000, min_ratio=0.2, buffer=10, convex_hull=False,
+	kernel=3, homo_matches=12, frame=0, min_area=1000, min_ratio=0.2, buffer=10, convex_hull=False,
 	centroid=False, representative_point=False, boundary=False, demo=False):
 	"""
 	* Main function: this runs the map extraction, resulting in a file being written
 	*  to the desired location
 	* @author jonnyhuck
 	"""
+
+	# make sure there are not any conflicting output options specified
+	if sum([convex_hull, centroid, representative_point, boundary]) > 1:
+		raise AttributeError(f"you have requested more than one type of output - please select only one of convex_hull, centroid, representative_point or boundary")
 
 	# check input files exist (cv2.imread does not raise FileNotFoundError)
 	if not path.isfile(reference):
@@ -255,18 +263,34 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 		print(f"output: {output}")
 
 	# read in reference image and greyscale
-	referenceImg = cvtColor(imread(reference), COLOR_BGR2GRAY)
+	reference_img = cvtColor(imread(reference), COLOR_BGR2GRAY)
 	if demo:
-		imwrite("./demo/1.reference.png", referenceImg)
+		imwrite("./demo/1.reference.png", reference_img)
 
 	# read in participant map and greyscale
-	participantMap = cvtColor(imread(target), COLOR_BGR2GRAY)
+	participant_map = cvtColor(imread(target), COLOR_BGR2GRAY)
+	if frame > 0:
+		# make a white background
+		h, w = participant_map.shape
+		
+		# make a white background that is 2 * frame larger then the image in each dimension
+		frame_multiplier = 1 + frame * 2
+		frame_background = zeros([int(h * frame_multiplier), int(w * frame_multiplier)], dtype=uint8)
+		frame_background.fill(127)
+
+		# paste the original image onto the new background, leaving a frame
+		y_offset, x_offset = int(frame * h), int(frame * w)
+		y_end, x_end = h + y_offset, w + x_offset
+		frame_background[y_offset:y_end, x_offset:x_end] = participant_map
+		
+		# overwrite the participant map
+		participant_map = frame_background
 	if demo:
-		imwrite("./demo/2.target.png", participantMap)
+		imwrite("./demo/2.target.png", participant_map)
 
 	# get metadata from QR code
 	try:
-		geodata = decode(referenceImg)[0].data.decode("utf-8").split(",")
+		geodata = decode(reference_img)[0].data.decode("utf-8").split(",")
 		if demo:
 			print('QR_DATA=', geodata)
 	except IndexError:
@@ -274,14 +298,15 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 
 	# verify that the target image matches the reference
 	try:
-		tmp_geodata = decode(participantMap)[0].data.decode("utf-8").split(",")
+		tmp_geodata = decode(participant_map)[0].data.decode("utf-8").split(",")
 		if geodata[-1] != tmp_geodata[-1]:
 			raise Exception('WRONG REFERENCE', "Target image does not match reference image")
 	except IndexError:
-		print("WARNING - can't read QR code in target image")
+		# print("WARNING - can't read QR code in target image")
+		pass	# never seems to manage to read it!
 
 	# run the imageb processing to get binary result array
-	opened_map = processImage(referenceImg, participantMap, lowe_distance,
+	opened_map = processImage(reference_img, participant_map, lowe_distance,
 		homo_matches, geodata, thresh, kernel, demo)
 
 	# output to a raster if the output file extension is .tif (no cleaning)

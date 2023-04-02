@@ -27,11 +27,10 @@ The basics of the extraction workflow is illustrated below: you simply generate 
 
 ### Notes on Map Generation
 
-Paper2GIS no longer supports map generation using Mapnik Stylesheets, as the Mapnik [Python Bindings](https://github.com/mapnik/python-mapnik)  proved to be increasingly challenging for people to build and appear to have very limited support / development at the moment. Instead, you can now either:
+Paper2GIS no longer supports map generation using Mapnik Stylesheets, as the Mapnik [Python Bindings](https://github.com/mapnik/python-mapnik) proved to be increasingly challenging for people to build and appear to have very limited support / development at the moment. Instead, you can now either:
 
-* provide a map image that will be used instead. For now, I would recommend making your map **1084 x 1436 @ 96dpi**, and ensuring that there are no very rark areas (e.g. prominent black labels), which may be misinterpreted as markup. 
+* provide a map image that will be used instead. For now, I would recommend making your map **1084 x 1436 @ 96dpi**, and ensuring that there are no very dark areas (e.g. prominent black labels), which may be misinterpreted as markup. 
 * provide your desired map bounds and Paper2GIS will generate a map for you using OSM map tiles. You control the desired zoom level of the map tiles that it uses, so that you can make sure that the map looks as good as possible. To get an idea, if you go to [OpenStreetMap](https://www.openstreetmap.org/), you can see the zoom level currently visible on the screen by looking at the URL. For example, if the URL is `https://www.openstreetmap.org/#map=18/2.78882/32.29586`, then the zoom level is **18** (the number that immediately follows `#map=`). The range is between `0` (for the whole world on a single tile) and `19` (the finest level of detail).If you are using the OSM tiles option, you can also add an optional **hillshade layer** courtesy of ESRI. An example of a Paper2GIS map with and without hillshade is given below:
-
 
 ![Hillshade Example](resources/images/hillshade.png)
 
@@ -39,7 +38,7 @@ It is always good to thoroughly test a map using the extractor before using a Pa
 
 ### Notes on Map Extraction
 
-Markup can be extracted as-is (marked areas will become **polygons**), as **convex hulls**, as **centroids** (point representing the centroid, irrespoective of whether or not it is contained withinthe original polygon), as **representative points** (points that are gurranteed to fall inside the original polygon) or as **polygons from boundaries** (where only the boundary is marked on the map, but a filled polygon is extracted). All extraction can be in the form of either a ShapeFile (`.shp`) or GeoTiff (`.tif`).
+Markup can be extracted as-is (marked areas will become **polygons**), as **convex hulls**, as **centroids** (point representing the geometric centroid, irrespoective of whether or not it is contained within the original polygon), as **representative points** (point that is definitely inside the original polygon) or as **polygons from boundaries** (where only the boundary is marked on the map, but a filled polygon is extracted). All extraction can be in the form of either a ShapeFile (`.shp`) or GeoTiff (`.tif`).
 
 ## Usage
 
@@ -279,7 +278,7 @@ I am planning to add the following features to Paper2GIS:
 * Implement better support for layouts of different sizes and resolutions, including landscape layouts
 * Implement batch processing for extraction
 * Improved output cleaning for GeoTiff outputs (so that it is the same as for the Shapefile outputs)
-* The ability to add an artificial frame to pictures of layouts that are too close to the edge of the photograph (including automated version where low number of matches are detected)
+* Automated version of the frame function where low number of matches are detected
 * Built in handling for HEIC files (from iPhones)
 
 #### Lower Priority:
