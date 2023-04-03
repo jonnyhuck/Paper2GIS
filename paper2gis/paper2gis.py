@@ -211,10 +211,14 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 			# extract polygons from boundaries only
 			elif (boundary):
 
-				# extract the exterior ring and convert to polygon
-				polygon = Polygon(geom.exterior.coords)
-				out.write({'geometry': mapping(polygon),
-					'properties': {'area': geom.convex_hull.area}})
+				# handle MultiPolygons
+				geoms = geom.geoms if geom.geom_type == 'MultiPolygon' else [geom]
+				for g in geoms:
+				
+					# extract the exterior ring and convert to polygon
+					polygon = Polygon(g.exterior.coords)
+					out.write({'geometry': mapping(polygon),
+						'properties': {'area': geom.area}})
 
 			# otherwise just save the raw geometry
 			else:
