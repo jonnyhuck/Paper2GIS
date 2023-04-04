@@ -281,10 +281,13 @@ I am planning to add the following features to Paper2GIS:
 * Improved output cleaning for GeoTiff outputs (so that it is the same as for the Shapefile outputs)
 * Automated version of the frame function where low number of matches are detected
 * Built in handling for HEIC files (from iPhones)
+* Handle polygons with holes in when using boundary generator
+* Improve handling of boundary polygons that intersect the edge of the map
 
 #### Lower Priority:
 
 * The ability to draw maps from custom tile sources
+* Automated histogram stretch for input images to improve definition of markup
 * A QGIS Plugin to interface with Paper2GIS
 
 If you would like to request a feature, you can do so by opening an [Issue](https://github.com/jonnyhuck/Paper2GIS/issues).

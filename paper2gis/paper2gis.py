@@ -233,6 +233,10 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 						out.write({'geometry': mapping(polygon),
 							'properties': {'area': geom.area}})
 
+			# TODO: have a `holes` option that gets all polygons within each 
+			# 	other polygon and adds them as holes to the constructor (or
+			# 	differences them)
+
 			# otherwise just save the raw geometry
 			else:
 				out.write({'geometry': mapping(geom),
