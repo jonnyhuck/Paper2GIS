@@ -76,7 +76,8 @@ with catch_warnings():
     p2g_parser.add_argument('-cc','--convex_hull', choices=['True', 'False'], help='store convex hulls of extracted shapes?', required = False, default = 'False')
     p2g_parser.add_argument('-cx','--centroid', choices=['True', 'False'], help='store centroids of extracted shapes?', required = False, default = 'False')
     p2g_parser.add_argument('-cr','--representative_point', choices=['True', 'False'], help='store representative points of extracted shapes?', required = False, default = 'False')
-    p2g_parser.add_argument('-cb','--boundary', choices=['True', 'False'], help='extract polygons from boundaries (rather than shaded areas)', required = False, default = 'False')
+    p2g_parser.add_argument('-ce','--exterior', choices=['True', 'False'], help='extract polygons from boundaries by extracting the outer ring', required = False, default = 'False')
+    p2g_parser.add_argument('-ci','--interior', choices=['True', 'False'], help='extract polygons from boundaries by extracting the inner rings', required = False, default = 'False')
 
     # runtime settings
     p2g_parser.add_argument('-d','--demo', choices=['True', 'False'], help='the output data file', required = False, default = 'False')
@@ -101,4 +102,4 @@ with catch_warnings():
             args.threshold, args.kernel, args.homo_matches, args.frame, args.min_area,
             args.min_ratio, args.buffer, args.convex_hull=='True', 
             args.centroid=='True', args.representative_point=='True', 
-            args.boundary=='True', args.demo=='True')
+            args.exterior=='True', args.interior=='True', args.demo=='True')

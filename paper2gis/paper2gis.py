@@ -137,7 +137,7 @@ def writeTiff(output, opened_map, geodata):
 		out.write(opened_map, 1)
 
 
-def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio, convex_hull, centroid, representative_point, boundary):
+def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio, convex_hull, centroid, representative_point, exterior, interior):
 	"""
 	* Clean an output dataset and write to a shapefile
 	* @author jonnyhuck
@@ -208,8 +208,8 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 				out.write({'geometry': mapping(geom.representative_point()),
 					'properties': {'area': 0}})
 			
-			# extract polygons from boundaries only
-			elif (boundary):
+			# extract exterior ring from polygon
+			elif (exterior):
 
 				# handle MultiPolygons
 				geoms = geom.geoms if geom.geom_type == 'MultiPolygon' else [geom]
@@ -219,6 +219,19 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 					polygon = Polygon(g.exterior.coords)
 					out.write({'geometry': mapping(polygon),
 						'properties': {'area': geom.area}})
+			
+			# extract interior ring from polygon
+			elif (interior):
+
+				# handle MultiPolygons
+				geoms = geom.geoms if geom.geom_type == 'MultiPolygon' else [geom]
+				for g in geoms:
+				
+					# extract the exterior ring and convert to polygon
+					for interior in geom.interiors:
+						polygon = Polygon(interior.coords)
+						out.write({'geometry': mapping(polygon),
+							'properties': {'area': geom.area}})
 
 			# otherwise just save the raw geometry
 			else:
@@ -228,7 +241,7 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 
 def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=100,
 	kernel=3, homo_matches=12, frame=0, min_area=1000, min_ratio=0.2, buffer=10, convex_hull=False,
-	centroid=False, representative_point=False, boundary=False, demo=False):
+	centroid=False, representative_point=False, exterior=False, interior=False, demo=False):
 	"""
 	* Main function: this runs the map extraction, resulting in a file being written
 	*  to the desired location
@@ -236,7 +249,7 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 	"""
 
 	# make sure there are not any conflicting output options specified
-	if sum([convex_hull, centroid, representative_point, boundary]) > 1:
+	if sum([convex_hull, centroid, representative_point, exterior, interior]) > 1:
 		raise AttributeError(f"you have requested more than one type of output - please select only one of convex_hull, centroid, representative_point or boundary")
 
 	# check input files exist (cv2.imread does not raise FileNotFoundError)
@@ -321,4 +334,4 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 	# clean the dataset and output to a vector if the output file extension is .shp
 	elif output[-4:] == ".shp":
 		cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio, 
-		      convex_hull, centroid, representative_point, boundary)
+		      convex_hull, centroid, representative_point, exterior, interior)

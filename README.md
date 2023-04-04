@@ -38,7 +38,7 @@ It is always good to thoroughly test a map using the extractor before using a Pa
 
 ### Notes on Map Extraction
 
-Markup can be extracted as-is (marked areas will become **polygons**), as **convex hulls**, as **centroids** (point representing the geometric centroid, irrespoective of whether or not it is contained within the original polygon), as **representative points** (point that is definitely inside the original polygon) or as **polygons from boundaries** (where only the boundary is marked on the map, but a filled polygon is extracted). All extraction can be in the form of either a ShapeFile (`.shp`) or GeoTiff (`.tif`).
+Markup can be extracted as-is (marked areas will become **polygons**), as **convex hulls**, as **centroids** (point representing the geometric centroid, irrespoective of whether or not it is contained within the original polygon), as **representative points** (point that is definitely inside the original polygon) or as **polygons from boundaries** (where only the boundary is marked on the map, but a filled polygon is extracted using either the exterior interior ring(s)). All extraction can be in the form of either a ShapeFile (`.shp`) or GeoTiff (`.tif`).
 
 ## Usage
 
@@ -97,9 +97,8 @@ python p2g.py extract --reference map.png --target in.jpg -o out.shp --threshold
 Full details:
 
 ```
-usage: Paper2GIS extract [-h] -r REFERENCE -t TARGET [-o OUTPUT] [-l LOWE_DISTANCE] [-k KERNEL] [-i THRESHOLD]
-                         [-m HOMO_MATCHES] [-f FRAME] [-a MIN_AREA] [-x MIN_RATIO] [-b BUFFER] [-cc {True,False}]
-                         [-cx {True,False}] [-cr {True,False}] [-cb {True,False}] [-d {True,False}]
+usage: Paper2GIS extract [-h] -r REFERENCE -t TARGET [-o OUTPUT] [-l LOWE_DISTANCE] [-k KERNEL] [-i THRESHOLD] [-m HOMO_MATCHES] [-f FRAME] [-a MIN_AREA] [-x MIN_RATIO] [-b BUFFER] [-cc {True,False}]
+                         [-cx {True,False}] [-cr {True,False}] [-ce {True,False}] [-ci {True,False}] [-d {True,False}]
 
 options:
   -h, --help            show this help message and exit
@@ -129,10 +128,12 @@ options:
                         store convex hulls of extracted shapes?
   -cx {True,False}, --centroid {True,False}
                         store centroids of extracted shapes?
-  -cr {True,False}, --representative point {True,False}
+  -cr {True,False}, --representative_point {True,False}
                         store representative points of extracted shapes?
-  -cb {True,False}, --boundary {True,False}
-                        extract polygons from boundaries (rather than shaded areas)
+  -ce {True,False}, --exterior {True,False}
+                        extract polygons from boundaries by extracting the outer ring
+  -ci {True,False}, --interior {True,False}
+                        extract polygons from boundaries by extracting the inner rings
   -d {True,False}, --demo {True,False}
                         the output data file
 ```
