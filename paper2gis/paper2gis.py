@@ -227,9 +227,9 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 				geoms = geom.geoms if geom.geom_type == 'MultiPolygon' else [geom]
 				for g in geoms:
 				
-					# extract the exterior ring and convert to polygon
-					for interior in geom.interiors:
-						polygon = Polygon(interior.coords)
+					# extract the interior ring and convert to polygon
+					for int_geom in geom.interiors:
+						polygon = Polygon(int_geom.coords)
 						out.write({'geometry': mapping(polygon),
 							'properties': {'area': geom.area}})
 
