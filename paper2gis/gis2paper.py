@@ -43,11 +43,11 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85, h
 	*     fade: (0-255) the intensity of the white filter
 	"""
 	# load additional libraries
-	from io import BytesIO
+	# from io import BytesIO
 	from PIL.Image import BILINEAR
 	from matplotlib import pyplot as plt
 	from cartopy.io.img_tiles import OSM
-	from numpy import reshape, frombuffer, uint8
+	# from numpy import reshape, frombuffer, uint8
 
 	# user warning if zoom has not been set
 	if zoom == 0:
@@ -82,6 +82,7 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85, h
 	# create a figure at the desired size and a GeoAxis
 	# TODO: This ia a bodge where I make the map too big then shrink - shouldn't be necessary
 	fig = plt.figure(figsize=(w/dpi*1.5, h/dpi*1.5), dpi=dpi)
+	fig.subplots_adjust(0,0,1,1)
 	ax = fig.add_subplot(1, 1, 1, projection=tiler.crs)
 
 	# set the desired map extent on the axis
@@ -90,7 +91,6 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85, h
 	# add the map tiles to the axis and get extent
 	# TODO: Can I set zoom level automatically...?
 	ax.add_image(tiler, zoom)
-	b = ax.get_window_extent()
 	
 	# add hillshade if needed
 	if hillshade:
@@ -98,15 +98,18 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85, h
 		ax.add_image(shade, zoom, alpha=hillshade_alpha)
 	
 	# load map into buffer then array
+	# b = ax.get_window_extent()
 	# TODO: This seems to be dependent on screen resolution - I think that the problem is actually ax.get_window_extent
-	io_buf = BytesIO()
-	fig.savefig(io_buf, format='raw', bbox_inches='tight', pad_inches=0) # dont set dpi?
-	io_buf.seek(0)
-	img_arr = reshape(frombuffer(io_buf.getvalue(), dtype=uint8), newshape=(int(b.height), int(b.width), -1))
-	io_buf.close()
+	# io_buf = BytesIO()
+	# fig.savefig(io_buf, format='raw', bbox_inches='tight', pad_inches=0) # dont set dpi? # (, dpi=dpi)
+	# io_buf.seek(0)
+	# img_arr = reshape(frombuffer(io_buf.getvalue(), dtype=uint8), newshape=(int(b.height), int(b.width), -1))
+	# io_buf.close()
 
 	# convert array to image
-	map = Image.fromarray(img_arr).convert('RGBA')
+	# map = Image.fromarray(img_arr).convert('RGBA')
+	fig.canvas.draw()
+	map = Image.frombytes('RGB', fig.canvas.get_width_height(), fig.canvas.tostring_rgb()).convert('RGBA')
 
 	 # overlay white filter and return (allow for the fade caused by the hillshade if needed)
 	filter = Image.new('RGBA', map.size, 'white')
