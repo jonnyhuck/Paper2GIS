@@ -8,3 +8,4 @@ out/*
 in/*.jpg
 *.qgz
 /*.png
+carver.sh
