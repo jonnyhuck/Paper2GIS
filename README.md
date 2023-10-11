@@ -175,7 +175,7 @@ pip install opencv-contrib-python
 * Get Paper2GIS:
 
 ```bash
-git clone git@github.com:jonnyhuck/Paper2GIS.git
+git clone https://github.com/jonnyhuck/Paper2GIS
 cd paper2gis-master
 ```
 
@@ -200,7 +200,7 @@ pip install opencv-contrib-python
 * Get Paper2GIS:
 
 ```bash
-git clone git@github.com:jonnyhuck/Paper2GIS.git
+git clone https://github.com/jonnyhuck/Paper2GIS
 cd paper2gis-master
 ```
 
@@ -228,7 +228,7 @@ pip install opencv-contrib-python pyzbar
 * Get Paper2GIS:
 
 ```bash
-git clone git@github.com:jonnyhuck/Paper2GIS.git
+git clone https://github.com/jonnyhuck/Paper2GIS
 cd paper2gis-master
 ```
 
