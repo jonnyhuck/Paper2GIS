@@ -199,7 +199,7 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 		trY = str(c[3])
 	else:
 		try:
-			Image.open(in_path)
+			in_map = Image.open(in_path)
 		except FileNotFoundError:
 			print("ERROR: cannot open input map file, please check file path")
 			exit()
