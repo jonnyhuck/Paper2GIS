@@ -176,7 +176,7 @@ pip install opencv-contrib-python
 
 ```bash
 git clone https://github.com/jonnyhuck/Paper2GIS
-cd paper2gis-master
+cd Paper2GIS
 ```
 
 ### Ubuntu
@@ -201,7 +201,7 @@ pip install opencv-contrib-python
 
 ```bash
 git clone https://github.com/jonnyhuck/Paper2GIS
-cd paper2gis-master
+cd Paper2GIS
 ```
 
 ### Windows
@@ -229,7 +229,7 @@ pip install opencv-contrib-python pyzbar
 
 ```bash
 git clone https://github.com/jonnyhuck/Paper2GIS
-cd paper2gis-master
+cd Paper2GIS
 ```
 
 ## Bulk Extraction and Shapefiles
