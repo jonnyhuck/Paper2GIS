@@ -144,6 +144,8 @@ The below examples use conda to manage the Python installations, but there is no
 
 ### Mac
 
+Open **Terminal** and run through the following steps:
+
 * Install X Code tools:
 
 ```bash
@@ -179,7 +181,27 @@ git clone https://github.com/jonnyhuck/Paper2GIS
 cd Paper2GIS
 ```
 
+At this point, you should have a working installation that you can test with:
+
+```bash
+python p2g.py -h
+```
+
+Which, if successful, will return:
+
+```txt
+usage: Paper2GIS [-h] {generate,extract} ...
+
+positional arguments:
+  {generate,extract}  either generate (to make a Paper2GIS layout) or extract (to retrieve markup from a photograph of a used Paper2GIS layout)
+
+options:
+  -h, --help          show this help message and exit
+```
+
 ### Ubuntu
+
+Open **Terminal** and run through the following steps:
 
 * Install C library dependencies:
 
@@ -204,6 +226,24 @@ git clone https://github.com/jonnyhuck/Paper2GIS
 cd Paper2GIS
 ```
 
+At this point, you should have a working installation that you can test with:
+
+```bash
+python p2g.py -h
+```
+
+Which, if successful, will return:
+
+```txt
+usage: Paper2GIS [-h] {generate,extract} ...
+
+positional arguments:
+  {generate,extract}  either generate (to make a Paper2GIS layout) or extract (to retrieve markup from a photograph of a used Paper2GIS layout)
+
+options:
+  -h, --help          show this help message and exit
+```
+
 ### Windows
 
 * Install GEOS and GDAL:
@@ -219,6 +259,10 @@ Now click **Next** and the software will present you with a longer list of softw
 
 * [Install Miniconda / Anaconda](https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/windows.html)
 
+Now, open **Anaconda Command Prompt** and run through the remaining steps:
+
+* Create the `paper2gis` Anaconda Environment
+
 ```bash
 conda create -n paper2gis -c conda-forge -y python=3 fiona rasterio pyzbar qrcode pillow cartopy
 conda activate paper2gis
@@ -230,6 +274,24 @@ pip install opencv-contrib-python pyzbar
 ```bash
 git clone https://github.com/jonnyhuck/Paper2GIS
 cd Paper2GIS
+```
+
+At this point, you should have a working installation that you can test with:
+
+```bash
+python p2g.py -h
+```
+
+Which, if successful, will return:
+
+```txt
+usage: Paper2GIS [-h] {generate,extract} ...
+
+positional arguments:
+  {generate,extract}  either generate (to make a Paper2GIS layout) or extract (to retrieve markup from a photograph of a used Paper2GIS layout)
+
+options:
+  -h, --help          show this help message and exit
 ```
 
 ## Bulk Extraction and Shapefiles
