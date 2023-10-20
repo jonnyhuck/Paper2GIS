@@ -193,6 +193,10 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 				# TODO: subdivide into individual geoms
 				geom = geom.difference(edge)
 
+			# make sure that we haven't ended up with an empty geometry
+			if geom.is_empty:
+				continue
+
 			# if convex hull is desired, save that
 			if (convex_hull):
 				out.write({'geometry': mapping(geom.convex_hull),
