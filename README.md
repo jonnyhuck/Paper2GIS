@@ -42,11 +42,15 @@ Markup can be extracted as-is (marked areas will become **polygons**), as **conv
 
 ## Usage
 
-Paper2GIS is accessed via a Python-based CLI package (`p2g.py`), the basic functionality is explained with the commands below. On a Mac or Linux machine, these commands can simply be typed into the the **Terminal**. on Windows, these commands should be run in the **Anaconda Prompt**.  
+Paper2GIS is accessed via a Python-based CLI package (`p2g.py`), the basic functionality is explained with the commands below. On a Mac or Linux machine, these commands can simply be typed into the the **Terminal**. on Windows, these commands should be run in the **Anaconda Prompt**. 
+
+Note that **Terminal** / **Anaconda Prompt** should be pointed to your `Paper2GIS` directory (i.e., the directory containing `p2g.py`) before running any of these commands. This can be achieved by running the command `cd <PATH_TO_Paper2GIS>` (e.g., `cd /Users/user/Paper2GIS/`).
 
 ### Verify an installation
 
-To test than an installation works, the easiest approach is to simply run the following commands in your **Terminal** (Linux/Mac) or **Anaconda Prompt** (Windows):
+To test than an installation works, the easiest approach is to simply run the following commands in your **Terminal** (Linux/Mac) or **Anaconda Prompt** (Windows). 
+
+Note that **Terminal** / **Anaconda Prompt** should be pointed to your `Paper2GIS` directory (i.e., the directory containing `p2g.py`) before running any of these commands. This can be achieved by running the command `cd <PATH_TO_Paper2GIS>` (e.g., `cd /Users/user/Paper2GIS/`).
 
 ```bash
 conda activate paper2gis
