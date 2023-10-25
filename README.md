@@ -42,9 +42,38 @@ Markup can be extracted as-is (marked areas will become **polygons**), as **conv
 
 ## Usage
 
-Paper2GIS accessed via a Python-based CLI package (`p2g.py`) that can be used to: 
+Paper2GIS is accessed via a Python-based CLI package (`p2g.py`), the basic functionality is explained with the commands below. On a Mac or Linux machine, these commands can simply be typed into the the **Terminal**. on Windows, these commands should be run in the **Anaconda Prompt**.  
+
+### Verify an installation
+
+To test than an installation works, the easiest approach is to simply run the following commands in your **Terminal** (Linux/Mac) or **Anaconda Prompt** (Windows):
+
+```bash
+conda activate paper2gis
+python p2g.py -h
+```
+
+which should return the following help message:
+
+```txt
+usage: Paper2GIS [-h] {generate,extract} ...
+
+positional arguments:
+  {generate,extract}  either generate (to make a Paper2GIS layout) or extract
+                      (to retrieve markup from a photograph of a used
+                      Paper2GIS layout)
+
+options:
+  -h, --help          show this help message and exit
+```
 
 ### Create a Paper2GIS layout from a map image (`p2g.py generate`)
+
+Before running any commands, you muist activate the `paper2gis` environment:
+
+```bash
+conda activate paper2gis
+```
 
 Example call with a pre-existing map (`1084 x 1436px @ 96dpi`):
 
@@ -88,7 +117,13 @@ options:
 
 ### Extract markup from an image of a used Paper2GIS layout (`p2g.py extract`)
 
-Example call:
+Before running any commands, you muist activate the `paper2gis` environment:
+
+```bash
+conda activate paper2gis
+```
+
+Example call for extraction:
 
 ```
 python p2g.py extract --reference map.png --target in.jpg -o out.shp --threshold 100 --kernel 0
@@ -137,6 +172,8 @@ options:
   -d {True,False}, --demo {True,False}
                         the output data file
 ```
+
+Note that the `-cc`, `-cx`, `-cr`, `-ce` and `-ci` parameters allow you to control what type of geometry output you get (without these, the markup is converted directly to polygons).
 
 ## Installation
 
