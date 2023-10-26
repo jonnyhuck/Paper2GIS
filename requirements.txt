@@ -1,0 +1,10 @@
+cartopy
+fiona
+matplotlib
+numpy
+opencv_python
+Pillow
+pyzbar
+qrcode
+rasterio
+Shapely
