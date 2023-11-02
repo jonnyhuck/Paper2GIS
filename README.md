@@ -287,6 +287,7 @@ options:
 
 ### Windows
 
+* Install the **Visual C++ Redistributable Packages** from [here](https://www.microsoft.com/en-US/download/details.aspx?id=40784). Note that you need to selectthe version that best suits your system: `vcredist_x64.exe` for 64 bit systems, `vcredist_x86.exe` for 32 bit systems, or `vcredist_arm.exe` for arm-based systems. If you are not sure and are using a relatively 'standard' laptop, it is likely that the one you need will be `vcredist_x64.exe`.
 * Install GEOS and GDAL:
 
 Download the [OSGeo4W Network Installer](https://trac.osgeo.org/osgeo4w/), run it and select **Advanced Install** &rarr; **Install from the Internet** and the accept the defaults on the **Select Root install Directory**, **Set Local Package Directory** and **Select your Internet Connection** pages. When you are asked to **Choose a Download Site**, choose the top option in the list.
