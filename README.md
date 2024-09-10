@@ -46,24 +46,28 @@ Paper2GIS is accessed via a Python-based CLI package (`p2g.py`), the basic funct
 
 Note that **Terminal** / **Anaconda Prompt** should be pointed to your `Paper2GIS` directory (i.e., the directory containing `p2g.py`) before running any of these commands. This can be achieved by running the command `cd <PATH_TO_Paper2GIS>` (e.g., `cd /Users/user/Paper2GIS/`).
 
-### Verify an installation
-
-To test than an installation works, the easiest approach is to simply run the following commands in your **Terminal** (Linux/Mac) or **Anaconda Prompt** (Windows). This runs a simple test that will complete an image extraction of the markup on `test/target.png` and tell you how different it is to the reference version at `test/out.png` (the value should be close to 0%).
-
-Note that **Terminal** / **Anaconda Prompt** should be pointed to your `Paper2GIS` directory (i.e., the directory containing `p2g.py`) before running any of these commands. This can be achieved by running the command `cd <PATH_TO_Paper2GIS>` (e.g., `cd /Users/user/Paper2GIS/`).
+To view the basic functionality of `p2g.py`, you can type the following command:
 
 ```bash
-conda activate paper2gis
-python p2g.py test
+python p2g.py -h
 ```
 
-Which, if successful, will return something like (the percentage might vary slightly between platforms):
+Which returns:
 
 ```txt
-running test image extraction...
-Your installation works!
-The result is 0.00% different to the reference version.
+usage: Paper2GIS [-h] {generate,extract,test} ...
+
+positional arguments:
+  {generate,extract,test}
+                        either: 'generate' to make a Paper2GIS layout; 'extract' to retrieve markup from a
+                        photograph of a used Paper2GIS layout; or 'test' to test that a new installation
+                        is functioning
+
+options:
+  -h, --help            show this help message and exit
 ```
+
+This explains that thewre are three possible commands: `generate`, `extract` and `test`. Each es explained in more detail below.
 
 ### Create a Paper2GIS layout from a map image (`p2g.py generate`)
 
@@ -172,6 +176,25 @@ options:
 ```
 
 Note that the `-cc`, `-cx`, `-cr`, `-ce` and `-ci` parameters allow you to control what type of geometry output you get (without these, the markup is converted directly to polygons).
+
+### Verify an installation (`p2g.py test`)
+
+To test than an installation works, the easiest approach is to simply run the following commands in your **Terminal** (Linux/Mac) or **Anaconda Prompt** (Windows). This runs a simple test that will complete an image extraction of the markup on `test/target.png` and tell you how different it is to the reference version at `test/out.png` (the value should be close to 0%).
+
+Note that **Terminal** / **Anaconda Prompt** should be pointed to your `Paper2GIS` directory (i.e., the directory containing `p2g.py`) before running any of these commands. This can be achieved by running the command `cd <PATH_TO_Paper2GIS>` (e.g., `cd /Users/user/Paper2GIS/`).
+
+```bash
+conda activate paper2gis
+python p2g.py test
+```
+
+Which, if successful, will return something like (the percentage might vary slightly between platforms):
+
+```txt
+running test image extraction...
+Your installation works!
+The result is 0.00% different to the reference version.
+```
 
 ## Installation
 
