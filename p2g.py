@@ -22,7 +22,7 @@ with catch_warnings():
 
     # set up argument parser
     parser = ArgumentParser("Paper2GIS")
-    subparsers = parser.add_subparsers(help='either generate (to make a Paper2GIS layout) or extract (to retrieve markup from a photograph of a used Paper2GIS layout)', dest='command')
+    subparsers = parser.add_subparsers(help="either: 'generate' to make a Paper2GIS layout; 'extract' to retrieve markup from a photograph of a used Paper2GIS layout; or 'test' to test that a new installation is functioning", dest='command')
 
     # create subparsers
     g2p_parser = subparsers.add_parser("generate")
@@ -110,7 +110,7 @@ with catch_warnings():
         from numpy import array, count_nonzero
         from PIL import Image, ImageChops
         from paper2gis.paper2gis import run_extract
-        print("\nrunning test image extraction...")
+        print("\nRunning test image extraction...")
         run_extract('test/reference.png', 'test/target.jpg', 'test/test_out.tif')
         diff = array(ImageChops.difference(Image.open('test/out.tif'), Image.open('test/test_out.tif')))
         print(f"\nYour installation works!\nThe result is {count_nonzero(diff) / diff.size * 100:.2f}% different to the reference version.\n")

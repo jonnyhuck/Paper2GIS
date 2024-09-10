@@ -57,18 +57,12 @@ conda activate paper2gis
 python p2g.py test
 ```
 
-which should return the following help message:
+Which, if successful, will return something like (the percentage might vary slightly between platforms):
 
 ```txt
-usage: Paper2GIS [-h] {generate,extract} ...
-
-positional arguments:
-  {generate,extract}  either generate (to make a Paper2GIS layout) or extract
-                      (to retrieve markup from a photograph of a used
-                      Paper2GIS layout)
-
-options:
-  -h, --help          show this help message and exit
+running test image extraction...
+Your installation works!
+The result is 0.00% different to the reference version.
 ```
 
 ### Create a Paper2GIS layout from a map image (`p2g.py generate`)
@@ -228,16 +222,12 @@ At this point, you should have a working installation that you can test with:
 python p2g.py test
 ```
 
-Which, if successful, will return:
+Which, if successful, will return something like (the percentage might vary slightly between platforms):
 
 ```txt
-usage: Paper2GIS [-h] {generate,extract} ...
-
-positional arguments:
-  {generate,extract}  either generate (to make a Paper2GIS layout) or extract (to retrieve markup from a photograph of a used Paper2GIS layout)
-
-options:
-  -h, --help          show this help message and exit
+running test image extraction...
+Your installation works!
+The result is 0.00% different to the reference version.
 ```
 
 ### Ubuntu
@@ -273,16 +263,12 @@ At this point, you should have a working installation that you can test with:
 python p2g.py test
 ```
 
-Which, if successful, will return:
+Which, if successful, will return something like (the percentage might vary slightly between platforms):
 
 ```txt
-usage: Paper2GIS [-h] {generate,extract} ...
-
-positional arguments:
-  {generate,extract}  either generate (to make a Paper2GIS layout) or extract (to retrieve markup from a photograph of a used Paper2GIS layout)
-
-options:
-  -h, --help          show this help message and exit
+running test image extraction...
+Your installation works!
+The result is 0.00% different to the reference version.
 ```
 
 ### Windows
@@ -324,16 +310,12 @@ At this point, you should have a working installation that you can test with:
 python p2g.py test
 ```
 
-Which, if successful, will return:
+Which, if successful, will return something like (the percentage might vary slightly between platforms):
 
 ```txt
-usage: Paper2GIS [-h] {generate,extract} ...
-
-positional arguments:
-  {generate,extract}  either generate (to make a Paper2GIS layout) or extract (to retrieve markup from a photograph of a used Paper2GIS layout)
-
-options:
-  -h, --help          show this help message and exit
+running test image extraction...
+Your installation works!
+The result is 0.00% different to the reference version.
 ```
 
 ## Bulk Extraction and Shapefiles
