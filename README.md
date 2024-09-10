@@ -48,13 +48,13 @@ Note that **Terminal** / **Anaconda Prompt** should be pointed to your `Paper2GI
 
 ### Verify an installation
 
-To test than an installation works, the easiest approach is to simply run the following commands in your **Terminal** (Linux/Mac) or **Anaconda Prompt** (Windows). 
+To test than an installation works, the easiest approach is to simply run the following commands in your **Terminal** (Linux/Mac) or **Anaconda Prompt** (Windows). This runs a simple test that will complete an image extraction of the markup on `test/target.png` and tell you how different it is to the reference version at `test/out.png` (the value should be close to 0%).
 
 Note that **Terminal** / **Anaconda Prompt** should be pointed to your `Paper2GIS` directory (i.e., the directory containing `p2g.py`) before running any of these commands. This can be achieved by running the command `cd <PATH_TO_Paper2GIS>` (e.g., `cd /Users/user/Paper2GIS/`).
 
 ```bash
 conda activate paper2gis
-python p2g.py -h
+python p2g.py test
 ```
 
 which should return the following help message:
@@ -225,7 +225,7 @@ cd Paper2GIS
 At this point, you should have a working installation that you can test with:
 
 ```bash
-python p2g.py -h
+python p2g.py test
 ```
 
 Which, if successful, will return:
@@ -270,7 +270,7 @@ cd Paper2GIS
 At this point, you should have a working installation that you can test with:
 
 ```bash
-python p2g.py -h
+python p2g.py test
 ```
 
 Which, if successful, will return:
@@ -321,7 +321,7 @@ cd Paper2GIS
 At this point, you should have a working installation that you can test with:
 
 ```bash
-python p2g.py -h
+python p2g.py test
 ```
 
 Which, if successful, will return:

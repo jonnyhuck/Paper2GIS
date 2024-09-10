@@ -27,6 +27,7 @@ with catch_warnings():
     # create subparsers
     g2p_parser = subparsers.add_parser("generate")
     p2g_parser = subparsers.add_parser("extract")
+    test_parser = subparsers.add_parser("test")
 
 
     ''' SET UP ARGS FOR GENERATE '''
@@ -103,3 +104,13 @@ with catch_warnings():
             args.min_ratio, args.buffer, args.convex_hull=='True', 
             args.centroid=='True', args.representative_point=='True', 
             args.exterior=='True', args.interior=='True', args.demo=='True')
+    
+    # run on test dataset, compare result to baseline and report
+    elif args.command == "test":
+        from numpy import array, count_nonzero
+        from PIL import Image, ImageChops
+        from paper2gis.paper2gis import run_extract
+        print("\nrunning test image extraction...")
+        run_extract('test/reference.png', 'test/target.jpg', 'test/test_out.tif')
+        diff = array(ImageChops.difference(Image.open('test/out.tif'), Image.open('test/test_out.tif')))
+        print(f"\nYour installation works!\nThe result is {count_nonzero(diff) / diff.size * 100:.2f}% different to the reference version.\n")
