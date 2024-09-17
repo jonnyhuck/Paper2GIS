@@ -67,11 +67,11 @@ options:
   -h, --help            show this help message and exit
 ```
 
-This explains that thewre are three possible commands: `generate`, `extract` and `test`. Each es explained in more detail below.
+This explains that there are three possible commands: `generate`, `extract` and `test`. Each es explained in more detail below.
 
 ### Create a Paper2GIS layout from a map image (`p2g.py generate`)
 
-Before running any commands, you muist activate the `paper2gis` environment:
+Before running any commands, you must activate the `paper2gis` environment:
 
 ```bash
 conda activate paper2gis
@@ -119,7 +119,7 @@ options:
 
 ### Extract markup from an image of a used Paper2GIS layout (`p2g.py extract`)
 
-Before running any commands, you muist activate the `paper2gis` environment:
+Before running any commands, you must activate the `paper2gis` environment:
 
 ```bash
 conda activate paper2gis
