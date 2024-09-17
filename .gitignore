@@ -9,3 +9,5 @@ in/*.jpg
 *.qgz
 /*.png
 carver.sh
+test/testgen.png
+test/test_out.tif

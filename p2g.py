@@ -107,10 +107,18 @@ with catch_warnings():
     
     # run on test dataset, compare result to baseline and report
     elif args.command == "test":
-        from numpy import array, count_nonzero
         from PIL import Image, ImageChops
+        from numpy import array, count_nonzero
         from paper2gis.paper2gis import run_extract
+        from paper2gis.gis2paper import run_generate
+        
+        print("\nRunning test image generation...")
+        run_generate(-393872.67, 7414244.26, -340247.96, 7476887.78, '3857', 96, None, 'test/testgen.png', True, 85, 11, False, None)
+        diff = array(ImageChops.difference(Image.open('test/reference.png'), Image.open('test/testgen.png')))
+        print(f"Generation works!\nThe result is {count_nonzero(diff) / diff.size * 100:.2f}% different to the reference version (up to 15% is due to the random border).\n")
+
+
         print("\nRunning test image extraction...")
         run_extract('test/reference.png', 'test/target.jpg', 'test/test_out.tif')
         diff = array(ImageChops.difference(Image.open('test/out.tif'), Image.open('test/test_out.tif')))
-        print(f"\nYour installation works!\nThe result is {count_nonzero(diff) / diff.size * 100:.2f}% different to the reference version.\n")
+        print(f"Extraction works!\nThe result is {count_nonzero(diff) / diff.size * 100:.2f}% different to the reference version.\n")

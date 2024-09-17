@@ -244,7 +244,9 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 		exit()
 
 	# get the dimensions of the text and page
-	_, th = draw.textsize(uid, font=font)
+	# _, th = draw.textsize(uid, font=font)	# deprecated
+	bbox = draw.textbbox((0, 0), uid, font=font, anchor="la")
+	th = bbox[3] - bbox[1]
 
 	# add attribution text
 	year = str(datetime.today().year)

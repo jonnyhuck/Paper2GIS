@@ -227,7 +227,7 @@ brew install zbar opencv gdal geos imagemagick
 * Set up conda environment (note the need to use `pip` for `opencv-contrib-python`):
 
 ```bash
-conda create -n paper2gis -c conda-forge -y python=3 fiona rasterio pyzbar qrcode pillow cartopy 
+conda create -n paper2gis -c conda-forge -y python=3 numpy=1.26.4 fiona rasterio pyzbar qrcode pillow cartopy 
 conda activate paper2gis
 pip install opencv-contrib-python
 ```
@@ -268,7 +268,7 @@ sudo apt install libopencv-dev python3-opencv libgdal-dev gdal-bin libzbar0 libg
 * Set up conda environment (note the need to use `pip` for `opencv-contrib-python`):
 
 ```bash
-conda create -n paper2gis -c conda-forge -y python=3 fiona rasterio pyzbar qrcode pillow cartopy
+conda create -n paper2gis -c conda-forge -y python=3 numpy=1.26.4 fiona rasterio pyzbar qrcode pillow cartopy 
 conda activate paper2gis
 pip install opencv-contrib-python
 ```
@@ -315,7 +315,7 @@ Now, open **Anaconda Command Prompt** and run through the remaining steps:
 * Create the `paper2gis` Anaconda Environment
 
 ```bash
-conda create -n paper2gis -c conda-forge -y python=3 fiona rasterio pyzbar qrcode pillow cartopy
+conda create -n paper2gis -c conda-forge -y python=3 numpy=1.26.4 fiona rasterio pyzbar qrcode pillow cartopy 
 conda activate paper2gis
 pip install opencv-contrib-python pyzbar
 ```
