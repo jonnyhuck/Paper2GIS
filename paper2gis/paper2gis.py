@@ -323,7 +323,7 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 
 	# verify that the target image matches the reference
 	try:
-		tmp_geodata = decode(participant_map)[0].data.decode("utf-8").split(",")
+		tmp_geodata = decode(participant_map, symbols=[ZBarSymbol.QRCODE])[0].data.decode("utf-8").split(",")
 		if geodata[-1] != tmp_geodata[-1]:
 			raise Exception('WRONG REFERENCE', "Target image does not match reference image")
 	except IndexError:
