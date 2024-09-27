@@ -244,7 +244,7 @@ git clone https://github.com/jonnyhuck/Paper2GIS
 cd Paper2GIS
 ```
 
-At this point, you should have a working installation that you can test with:
+At this point, you should have a working installation that you can test with the following command:
 
 ```bash
 python p2g.py test
@@ -290,7 +290,7 @@ git clone https://github.com/jonnyhuck/Paper2GIS
 cd Paper2GIS
 ```
 
-At this point, you should have a working installation that you can test with:
+At this point, you should have a working installation that you can test with the following command:
 
 ```bash
 python p2g.py test
@@ -311,7 +311,7 @@ The result is 0.00% different to the reference version.
 
 ### Windows
 
-* Install the **Visual C++ Redistributable Packages** from [here](https://www.microsoft.com/en-US/download/details.aspx?id=40784). Note that you need to selectthe version that best suits your system: `vcredist_x64.exe` for 64 bit systems, `vcredist_x86.exe` for 32 bit systems, or `vcredist_arm.exe` for arm-based systems. If you are not sure and are using a relatively 'standard' laptop, it is likely that the one you need will be `vcredist_x64.exe`.
+* Install the **Visual C++ Redistributable Packages** from [here](https://www.microsoft.com/en-US/download/details.aspx?id=40784). Note that you need to select the version that best suits your system: `vcredist_x64.exe` for 64 bit systems, `vcredist_x86.exe` for 32 bit systems, or `vcredist_arm.exe` for arm-based systems. If you are not sure and are using a relatively 'standard' laptop, it is likely that the one you need will be `vcredist_x64.exe`.
 * Install GEOS and GDAL:
 
 Download the [OSGeo4W Network Installer](https://trac.osgeo.org/osgeo4w/), run it and select **Advanced Install** &rarr; **Install from the Internet** and the accept the defaults on the **Select Root install Directory**, **Set Local Package Directory** and **Select your Internet Connection** pages. When you are asked to **Choose a Download Site**, choose the top option in the list.
@@ -330,19 +330,20 @@ Now, open **Anaconda Command Prompt** and run through the remaining steps:
 * Create the `paper2gis` Anaconda Environment
 
 ```bash
-conda create -n paper2gis -c conda-forge -y python=3 numpy=1.26.4 fiona rasterio pyzbar qrcode pillow cartopy 
+conda create -n paper2gis -c conda-forge -y python=3 numpy=1.26.4 fiona rasterio qrcode pillow cartopy 
 conda activate paper2gis
 pip install opencv-contrib-python pyzbar
 ```
 
 * Get Paper2GIS:
+**Note:** If the below command (starting `git...`) doesn't work, this could be because the `git` software is missing from your system. To fix this, you can install Git from [here](https://git-scm.com/downloads/win). Select the **Standalone Installer**, and choose the 32-bit or 64-bit version as required by your system (if you are not sure, you will most likely need 64-bit). You may need to close an re-open the **Anaconda Command Prompt** for the command to work.
 
 ```bash
 git clone https://github.com/jonnyhuck/Paper2GIS
 cd Paper2GIS
 ```
 
-At this point, you should have a working installation that you can test with:
+At this point, you should have a working installation that you can test with the following command:
 
 ```bash
 python p2g.py test
@@ -403,8 +404,6 @@ echo "done."
 
 I am planning to add the following features to Paper2GIS:
 
-#### High Priority:
-
 * Implement better support for layouts of different sizes and resolutions, including landscape layouts
 * Implement batch processing for extraction
 * Improved output cleaning for GeoTiff outputs (so that it is the same as for the Shapefile outputs)
@@ -412,14 +411,11 @@ I am planning to add the following features to Paper2GIS:
 * Built in handling for HEIC files (from iPhones)
 * Handle polygons with holes in when using boundary generator
 * Improve handling of boundary polygons that intersect the edge of the map
-
-#### Lower Priority:
-
 * The ability to draw maps from custom tile sources
 * Automated histogram stretch for input images to improve definition of markup
 * A QGIS Plugin to interface with Paper2GIS
 
-If you would like to request a feature, you can do so by opening an [Issue](https://github.com/jonnyhuck/Paper2GIS/issues).
+If you would like to request a feature (or wish for one to be prioritised), you can do so by opening an [Issue](https://github.com/jonnyhuck/Paper2GIS/issues).
 
 ## Licensing
 
@@ -427,7 +423,7 @@ The software is licensed under the [GNU General Public License v3](LICENSE). Bun
 
 ## References
 
-Paper2GIS has been described in the academic literature (* = open access).
+Paper2GIS has been described in the following articles in the academic literature (* = open access):
 
 ### Journal Articles
 
