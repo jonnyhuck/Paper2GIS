@@ -191,8 +191,13 @@ python p2g.py test
 Which, if successful, will return something like (the percentage might vary slightly between platforms):
 
 ```txt
-running test image extraction...
-Your installation works!
+Running test image generation...
+Generation works!
+The result is 14.50% different to the reference version (up to 15% is due to the random border).
+
+
+Running test image extraction...
+Extraction works!
 The result is 0.00% different to the reference version.
 ```
 
@@ -248,8 +253,13 @@ python p2g.py test
 Which, if successful, will return something like (the percentage might vary slightly between platforms):
 
 ```txt
-running test image extraction...
-Your installation works!
+Running test image generation...
+Generation works!
+The result is 14.50% different to the reference version (up to 15% is due to the random border).
+
+
+Running test image extraction...
+Extraction works!
 The result is 0.00% different to the reference version.
 ```
 
@@ -289,8 +299,13 @@ python p2g.py test
 Which, if successful, will return something like (the percentage might vary slightly between platforms):
 
 ```txt
-running test image extraction...
-Your installation works!
+Running test image generation...
+Generation works!
+The result is 14.50% different to the reference version (up to 15% is due to the random border).
+
+
+Running test image extraction...
+Extraction works!
 The result is 0.00% different to the reference version.
 ```
 
@@ -336,8 +351,13 @@ python p2g.py test
 Which, if successful, will return something like (the percentage might vary slightly between platforms):
 
 ```txt
-running test image extraction...
-Your installation works!
+Running test image generation...
+Generation works!
+The result is 14.50% different to the reference version (up to 15% is due to the random border).
+
+
+Running test image extraction...
+Extraction works!
 The result is 0.00% different to the reference version.
 ```
 
