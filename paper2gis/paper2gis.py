@@ -24,12 +24,12 @@
 
 from sys import exit
 from glob import glob
-from pyzbar.pyzbar import decode
 from fiona import open as fio_open
 from rasterio.features import shapes
 from os import remove, path, makedirs
 from rasterio import open as rio_open
 from rasterio.transform import from_bounds
+from pyzbar.pyzbar import decode, ZBarSymbol
 from numpy import float32, uint8, ones, zeros
 from shapely.geometry import shape, mapping, LineString, Polygon
 from cv2 import RANSAC, COLOR_BGR2GRAY, MORPH_OPEN, THRESH_BINARY_INV
@@ -315,7 +315,7 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 
 	# get metadata from QR code
 	try:
-		geodata = decode(reference_img)[0].data.decode("utf-8").split(",")
+		geodata = decode(reference_img, symbols=[ZBarSymbol.QRCODE])[0].data.decode("utf-8").split(",")
 		if demo:
 			print('QR_DATA=', geodata)
 	except IndexError:
