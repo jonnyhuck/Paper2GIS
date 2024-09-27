@@ -329,6 +329,7 @@ Now, open **Anaconda Command Prompt** and run through the remaining steps:
 
 * Create the `paper2gis` Anaconda Environment
 
+<!-- NOTE!: THE WINDOWS INSTALL COMMAND IS DIFFERENT TO THE OTHERS - PYZBAR NEEDS TO BE INSTALLED FROM PIP -->
 ```bash
 conda create -n paper2gis -c conda-forge -y python=3 numpy=1.26.4 fiona rasterio qrcode pillow cartopy 
 conda activate paper2gis
