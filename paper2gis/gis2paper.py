@@ -8,10 +8,12 @@
 from sys import exit
 from math import ceil
 from uuid import uuid4
+from io import BytesIO
 from qrcode import QRCode
 from numpy.random import rand
 from datetime import datetime
 from PIL.ImageOps import expand
+from fiona.errors import DriverError
 from PIL import Image, ImageDraw, ImageFont
 from qrcode.constants import ERROR_CORRECT_L
 from cartopy.io.img_tiles import GoogleTiles
@@ -21,7 +23,6 @@ class ShadedReliefESRI(GoogleTiles):
     * Custom class for hillshade tiles from ESRI, see: 
 	*	https://stackoverflow.com/questions/37423997/cartopy-shaded-relief
 	"""
-    # shaded relief
     def _image_url(self, tile):
         x, y, z = tile
         url = ('https://server.arcgisonline.com/ArcGIS/rest/services/' \
@@ -30,7 +31,19 @@ class ShadedReliefESRI(GoogleTiles):
         return url
 
 
-def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85, hillshade=False, hillshade_alpha=0.25):
+def figure_to_image(fig, dpi=None):
+	"""
+	* Convert a pyplot Figure to a PIL Image
+	"""
+	buf = BytesIO()
+	fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight")
+	buf.seek(0)
+	img = Image.open(buf)
+	return img.convert("RGBA")
+
+
+def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85, hillshade=False, hillshade_alpha=0.25, 
+				boundary_file=None, boundary_width=8, boundary_colour='blue', boundary_alpha=0.1):
 	"""
 	* Return an OSM map as a PIL image
 	* 
@@ -84,7 +97,7 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85, h
 	ax = fig.add_subplot(1, 1, 1, projection=tiler.crs)
 
 	# set the desired map extent on the axis
-	ax.set_extent([bl_x, tr_x, bl_y, tr_y], crs=crs)
+	ax.set_extent([bl_x, tr_x, bl_y, tr_y], crs=tiler.crs)
 
 	# add the map tiles to the axis and get extent
 	# TODO: Can I set zoom level automatically...?
@@ -95,12 +108,29 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85, h
 		shade = ShadedReliefESRI()
 		ax.add_image(shade, zoom, alpha=hillshade_alpha)
 	
-	# convert tiles to image 
-	# https://stackoverflow.com/questions/57316491/how-to-convert-matplotlib-figure-to-pil-image-object-without-saving-image
-	fig.canvas.draw()
-	map = Image.frombytes('RGB', fig.canvas.get_width_height(), fig.canvas.tostring_rgb()).convert('RGBA')
+	# add LD boundary
+	if boundary_file:
+		import cartopy.io.shapereader as shpreader
+		
+		# open the boundary file
+		try:
+			reader = shpreader.Reader(boundary_file)
 
-	 # overlay white filter and return (allow for the fade caused by the hillshade if needed)
+			# add to the map
+			ax.add_geometries(reader.geometries(), crs=tiler.crs, facecolor='none', edgecolor=boundary_colour, 
+					 linewidth=boundary_width, alpha=boundary_alpha)
+			
+		except DriverError:
+			if boundary_file[-4:] != ".shp":
+				print(f"ERROR: Could not open Shapefile {boundary_file}, please check file extension")
+			else:
+				print(f"ERROR: Could not open Shapefile {boundary_file}, please check file path")
+			exit()
+		
+	# convert map image (pyplot Figure) to PIL Image
+	map = figure_to_image(fig)
+
+	# overlay white filter and return (allow for the fade caused by the hillshade if needed)
 	filter = Image.new('RGBA', map.size, 'white')
 	fade = int(fade - (hillshade_alpha * 255) + 0.5) if hillshade else fade
 	filter.putalpha(fade)
@@ -120,7 +150,8 @@ def mm2px(mm, dpi=96):
 	return int(ceil(mm * dpi / 25.4))
 
 
-def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, zoom, hillshade, hillshade_alpha):
+def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, zoom, hillshade, 
+				 hillshade_alpha, boundary_file, boundary_width, boundary_colour, boundary_alpha):
 	"""
 	* Generate a Paper2GIS layout from an existing map, or generate one from tiles
 	* 
@@ -192,7 +223,9 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 	# get input image or create one from tiles
 	if tiles:
 		# note we might need to overwrite the dimensions here as the map gets adjusted to fit the template
-		c, in_map = get_osm_map(float(blX), float(blY), float(trX), float(trY), zoom, 1084, 1436, fade, hillshade=hillshade) 
+		c, in_map = get_osm_map(float(blX), float(blY), float(trX), float(trY), zoom, 1084, 1436, fade=fade, hillshade=hillshade, 
+						  hillshade_alpha=hillshade_alpha, boundary_file=boundary_file, boundary_width=boundary_width, 
+						  boundary_colour=boundary_colour, boundary_alpha=boundary_alpha) 
 		blX = str(c[0])
 		blY = str(c[1])
 		trX = str(c[2])
@@ -207,7 +240,7 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 	# open the map and add black border
 	map = expand(expand(in_map, border=4, fill='black'), border=2, fill='white')
 
-	# generate random colours
+	# generate random noise for border
 	noise = rand((map_height + page_buffer*2 + 6*2)//divider, page_w//divider, 3) * 255
 
 	# turn random noise into greyscale image
@@ -244,7 +277,6 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 		exit()
 
 	# get the dimensions of the text and page
-	# _, th = draw.textsize(uid, font=font)	# deprecated
 	bbox = draw.textbbox((0, 0), uid, font=font, anchor="la")
 	th = bbox[3] - bbox[1]
 

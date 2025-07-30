@@ -34,6 +34,8 @@ Paper2GIS no longer supports map generation using Mapnik Stylesheets, as the Map
 
 ![Hillshade Example](resources/images/hillshade.png)
 
+* if you are using the OpenStreetMap tiles, you also have the optiojn of adding a boundary to your dataset (i.e., toi mark the extent of your are of interest). This is achieved by providing a path to a Shapefile containing the boundary as a polygon. It will be drawn as an outline, with the width, colour and opacity all editable using the options.
+
 It is always good to thoroughly test a map using the extractor before using a Paper2GIS layout 'in the wild', and remember that the `extract` software has loads of settings to help make sure that you get a nice result, so don't panic if you don't get a perfect result first time with the default settings!
 
 ### Notes on Map Extraction
@@ -92,7 +94,8 @@ python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934
 Full details:
 
 ```
-usage: Paper2GIS generate [-h] -a BL_X -b BL_Y -c TR_X -d TR_Y [-e EPSG] [-r RESOLUTION] [-i INPUT] [-o OUTPUT] [-t {True,False}] [-f FADE] [-z ZOOM] [-s {True,False}] [-sa HILLSHADEALPHA]
+usage: Paper2GIS generate [-h] -a BL_X -b BL_Y -c TR_X -d TR_Y [-e EPSG] [-r RESOLUTION] [-i INPUT] [-o OUTPUT] [-t {True,False}] [-f FADE] [-z ZOOM] [-s {True,False}] [-sa HILLSHADEALPHA] [-bf BOUNDARYFILE]
+                          [-bw BOUNDARYWIDTH] [-bc BOUNDARYCOLOUR] [-ba BOUNDARYALPHA]
 
 options:
   -h, --help            show this help message and exit
@@ -115,6 +118,14 @@ options:
                         add hillshade to generated OSM map
   -sa HILLSHADEALPHA, --hillshadealpha HILLSHADEALPHA
                         the alpha value for the hillshade layer
+  -bf BOUNDARYFILE, --boundaryfile BOUNDARYFILE
+                        a shapefile containing boundary data
+  -bw BOUNDARYWIDTH, --boundarywidth BOUNDARYWIDTH
+                        the width (in pixels) of the boundary line
+  -bc BOUNDARYCOLOUR, --boundarycolour BOUNDARYCOLOUR
+                        the colour of the boundary line
+  -ba BOUNDARYALPHA, --boundaryalpha BOUNDARYALPHA
+                        the alpha (opacity) of the boundary line
 ```
 
 ### Extract markup from an image of a used Paper2GIS layout (`p2g.py extract`)

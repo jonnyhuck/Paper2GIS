@@ -52,6 +52,12 @@ with catch_warnings():
     g2p_parser.add_argument('-z','--zoom', type=int, help='requested zoom level of OSM tiles (necessary if using tiles)', required=False, default=0)
     g2p_parser.add_argument('-s','--hillshade', choices=['True', 'False'], help='add hillshade to generated OSM map', required=False, default='False')
     g2p_parser.add_argument('-sa','--hillshadealpha', type=float, help='the alpha value for the hillshade layer', required=False, default=0.25)
+    
+    # boundary dataset
+    g2p_parser.add_argument('-bf','--boundaryfile', help='a shapefile containing boundary data', required=False, default=None)
+    g2p_parser.add_argument('-bw','--boundarywidth', type=int, help='the width (in pixels) of the boundary line', required=False, default=8)
+    g2p_parser.add_argument('-bc','--boundarycolour', help='the colour of the boundary line', required=False, default='blue')
+    g2p_parser.add_argument('-ba','--boundaryalpha', type=float, help='the alpha (opacity) of the boundary line', required=False, default=0.1)
 
 
     ''' SET UP ARGS FOR EXTRACT '''
@@ -94,7 +100,8 @@ with catch_warnings():
         from paper2gis.gis2paper import run_generate
         run_generate(args.bl_x, args.bl_y, args.tr_x, args.tr_y, args.epsg, 
             args.resolution, args.input, args.output, args.tiles == 'True', 
-            args.fade, args.zoom, args.hillshade=='True', args.hillshadealpha==0.25)
+            args.fade, args.zoom, args.hillshade=='True', args.hillshadealpha, 
+            args.boundaryfile, args.boundarywidth, args.boundarycolour, args.boundaryalpha)
 
     # extract markup from a photograph of a map and store the result in the specified file
     elif args.command == "extract":
@@ -113,7 +120,7 @@ with catch_warnings():
         from paper2gis.gis2paper import run_generate
         
         print("\nRunning test image generation...")
-        run_generate(-393872.67, 7414244.26, -340247.96, 7476887.78, '3857', 96, None, 'test/testgen.png', True, 85, 11, False, None)
+        run_generate(-393872.67, 7414244.26, -340247.96, 7476887.78, '3857', 96, None, 'test/testgen.png', True, 85, 11, False, None, None, None, None, None)
         diff = array(ImageChops.difference(Image.open('test/reference.png'), Image.open('test/testgen.png')))
         print(f"Generation works!\nThe result is {count_nonzero(diff) / diff.size * 100:.2f}% different to the reference version (up to 15% is due to the random border).\n")
 
