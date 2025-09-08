@@ -22,15 +22,18 @@
 * 	- Implement cleaning for raster outputs using: https://github.com/mapbox/rasterio/blob/fb93a6425c17f25141ad308cee7263d0c491a0a9/examples/rasterize_geometry.py
 """
 
+import pillow_heif
 from sys import exit
 from glob import glob
+from PIL import Image
+from pathlib import Path
 from fiona import open as fio_open
 from rasterio.features import shapes
 from os import remove, path, makedirs
 from rasterio import open as rio_open
 from rasterio.transform import from_bounds
 from pyzbar.pyzbar import decode, ZBarSymbol
-from numpy import float32, uint8, ones, zeros
+from numpy import float32, uint8, ones, zeros, array
 from shapely.geometry import shape, mapping, LineString, Polygon
 from cv2 import RANSAC, COLOR_BGR2GRAY, MORPH_OPEN, THRESH_BINARY_INV
 from cv2 import findHomography, perspectiveTransform, warpPerspective, morphologyEx, \
@@ -292,8 +295,24 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 	if demo:
 		imwrite("./demo/1.reference.png", reference_img)
 
+	# catch HEIC/heif input file
+	if Path(target).suffix.lower() in {".heic", ".heif"}:
+		if demo:
+			print("converting HEIC...")
+		
+		# register HEIF opener with Pillow and open the file
+		pillow_heif.register_heif_opener()
+		pil_img = Image.open(target)
+
+		# convert to NumPy array
+		ref_np = array(pil_img)
+	else:
+
+		# read into numpy array
+		ref_np = imread(target)
+
 	# read in participant map and greyscale
-	participant_map = cvtColor(imread(target), COLOR_BGR2GRAY)
+	participant_map = cvtColor(ref_np, COLOR_BGR2GRAY)
 	if frame > 0:
 		# make a white background
 		h, w = participant_map.shape

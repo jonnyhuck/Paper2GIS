@@ -246,7 +246,7 @@ brew install zbar opencv gdal geos imagemagick
 * Set up conda environment (note the need to use `pip` for `opencv-contrib-python`):
 
 ```bash
-conda create -n paper2gis -c conda-forge -y python=3 numpy=1.26.4 fiona rasterio pyzbar qrcode pillow cartopy 
+conda create -n paper2gis -c conda-forge -y python=3 numpy=1.26.4 fiona rasterio pyzbar qrcode pillow cartopy pillow-heif
 conda activate paper2gis
 pip install opencv-contrib-python
 ```
@@ -292,7 +292,7 @@ sudo apt install libopencv-dev python3-opencv libgdal-dev gdal-bin libzbar0 libg
 * Set up conda environment (note the need to use `pip` for `opencv-contrib-python`):
 
 ```bash
-conda create -n paper2gis -c conda-forge -y python=3 numpy=1.26.4 fiona rasterio pyzbar qrcode pillow cartopy 
+conda create -n paper2gis -c conda-forge -y python=3 numpy=1.26.4 fiona rasterio pyzbar qrcode pillow cartopy pillow-heif
 conda activate paper2gis
 pip install opencv-contrib-python
 ```
@@ -345,7 +345,7 @@ Now, open **Anaconda Command Prompt** and run through the remaining steps:
 
 <!-- NOTE!: THE WINDOWS INSTALL COMMAND IS DIFFERENT TO THE OTHERS - PYZBAR NEEDS TO BE INSTALLED FROM PIP -->
 ```bash
-conda create -n paper2gis -c conda-forge -y python=3 numpy=1.26.4 fiona rasterio qrcode pillow cartopy 
+conda create -n paper2gis -c conda-forge -y python=3 numpy=1.26.4 fiona rasterio qrcode pillow cartopy pillow-heif
 conda activate paper2gis
 pip install opencv-contrib-python pyzbar
 ```
@@ -386,16 +386,8 @@ Paper2GIS does not currently have any specific bulk data processing functionalit
 
 # this prevents an error for loops that match no file
 shopt -s nullglob
-
-# convert any iphone images to jpg and fix spaces in file names
-for FILE in *.HEIC 
-do 
-    FILEJPG=`echo $FILE | sed "s/.HEIC/.jpg/"`
-    convert -quality 100% $FILE $FILEJPG
-    rm $FILE
-done
  
-# extract shapefiles
+# extract to shapefiles
 for FILE in *.jpg 
 do
 
@@ -423,7 +415,6 @@ I am planning to add the following features to Paper2GIS:
 * Implement batch processing for extraction
 * Improved output cleaning for GeoTiff outputs (so that it is the same as for the Shapefile outputs)
 * Automated version of the frame function where low number of matches are detected
-* Built in handling for HEIC files (from iPhones)
 * Handle polygons with holes in when using boundary generator
 * Improve handling of boundary polygons that intersect the edge of the map
 * The ability to draw maps from custom tile sources

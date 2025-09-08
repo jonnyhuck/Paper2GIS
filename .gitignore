@@ -11,3 +11,6 @@ in/*.jpg
 carver.sh
 test/testgen.png
 test/test_out.tif
+.vscode/
+fld*.sh
+test.py
