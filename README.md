@@ -241,7 +241,7 @@ xcode-select --install
 brew install zbar opencv gdal geos imagemagick
 ```
 
-* [Install Miniconda / Anaconda](https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/macos.html)
+* **(Only if you do not already have it installed)** [Install Miniconda / Anaconda](https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/macos.html)
 
 * Set up conda environment (note the need to use `pip` for `opencv-contrib-python`):
 
@@ -287,7 +287,7 @@ Open **Terminal** and run through the following steps:
 sudo apt install libopencv-dev python3-opencv libgdal-dev gdal-bin libzbar0 libgeos3.10.2
 ```
 
-* [Install Miniconda / Anaconda](https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/linux.html)
+* **(Only if you do not already have it installed)** [Install Miniconda / Anaconda](https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/linux.html)
 
 * Set up conda environment (note the need to use `pip` for `opencv-contrib-python`):
 
@@ -337,7 +337,7 @@ Now, will be looking at a long list of things that you can install. Expand the *
 
 Now click **Next** and the software will present you with a longer list of software that comprises the dependencies of your selected packages. Make sure the **Install these packages to meet dependencies** box at the bottom is ticked and click **Next**. The download process will begin and you may be presented with one or more license agreements that you must **Agree** before proceeding. When the **Installation Complete** message appears, click **Finish**.
 
-* [Install Miniconda / Anaconda](https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/windows.html)
+* **(Only if you do not already have it installed)** [Install Miniconda / Anaconda](https://docs.conda.io/projects/continuumio-conda/en/latest/user-guide/install/windows.html)
 
 Now, open **Anaconda Command Prompt** and run through the remaining steps:
 
