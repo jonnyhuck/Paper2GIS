@@ -148,8 +148,20 @@ python p2g.py extract --reference map.png --target in.jpg -o out.shp --threshold
 Full details:
 
 ```
-usage: Paper2GIS extract [-h] -r REFERENCE -t TARGET [-o OUTPUT] [-l LOWE_DISTANCE] [-k KERNEL] [-i THRESHOLD] [-m HOMO_MATCHES] [-f FRAME] [-a MIN_AREA] [-x MIN_RATIO] [-b BUFFER] [-cc {True,False}]
-                         [-cx {True,False}] [-cr {True,False}] [-ce {True,False}] [-ci {True,False}] [-d {True,False}]
+usage: Paper2GIS [-h] {generate,extract,test} ...
+
+positional arguments:
+  {generate,extract,test}
+                        either: 'generate' to make a Paper2GIS layout; 'extract' to retrieve markup from a photograph
+                        of a used Paper2GIS layout; or 'test' to test that a new installation is functioning
+
+options:
+  -h, --help            show this help message and exit
+(paper2gis) jonnyhuck@MacBookPro _github % python p2g.py extract -h
+usage: Paper2GIS extract [-h] -r REFERENCE -t TARGET [-o OUTPUT] [-l LOWE_DISTANCE] [-k KERNEL] [-i THRESHOLD]
+                         [-m HOMO_MATCHES] [-u UID] [-f FRAME] [-a MIN_AREA] [-x MIN_RATIO] [-b BUFFER]
+                         [-cc {True,False}] [-cx {True,False}] [-cr {True,False}] [-ce {True,False}] [-ci {True,False}]
+                         [-d {True,False}]
 
 options:
   -h, --help            show this help message and exit
@@ -167,6 +179,7 @@ options:
                         the threshold the target image
   -m HOMO_MATCHES, --homo_matches HOMO_MATCHES
                         the number of matches required for homography
+  -u UID, --uid UID     user ID number to add the the output shapefile
   -f FRAME, --frame FRAME
                         a frame to add round the image if the map is too close to the edge
   -a MIN_AREA, --min_area MIN_AREA

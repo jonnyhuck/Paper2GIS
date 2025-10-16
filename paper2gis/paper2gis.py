@@ -140,7 +140,8 @@ def writeTiff(output, opened_map, geodata):
 		out.write(opened_map, 1)
 
 
-def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio, convex_hull, centroid, representative_point, exterior, interior):
+def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio, 
+						convex_hull, centroid, representative_point, exterior, interior, uid):
 	"""
 	* Clean an output dataset and write to a shapefile
 	* @author jonnyhuck
@@ -160,7 +161,7 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 
 	# open shapefile for writing
 	with fio_open(output, 'w', driver="ESRI Shapefile", crs=f"EPSG:{geodata[4]}",
-		schema={'geometry': geom_type, 'properties': {'area':'float'}}) as out:
+		schema={'geometry': geom_type, 'properties': {'area':'float', 'uid':'int'}}) as out:
 
 		#  this would write the raw records - the equivalent of what you would get in the raster output
 		# out.writerecords(results)
@@ -203,17 +204,17 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 			# if convex hull is desired, save that
 			if (convex_hull):
 				out.write({'geometry': mapping(geom.convex_hull),
-					'properties': {'area': geom.convex_hull.area}})
+					'properties': {'area': geom.convex_hull.area, 'uid': uid}})
 			
 			# if centroid is desired, save that
 			elif (centroid):
 				out.write({'geometry': mapping(geom.centroid),
-					'properties': {'area': 0}})
+					'properties': {'area': 0, 'uid': uid}})
 
 			# if rep point is desired, save that
 			elif (representative_point):
 				out.write({'geometry': mapping(geom.representative_point()),
-					'properties': {'area': 0}})
+					'properties': {'area': 0, 'uid': uid}})
 			
 			# extract exterior ring from polygon
 			elif (exterior):
@@ -225,7 +226,7 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 					# extract the exterior ring and convert to polygon
 					polygon = Polygon(g.exterior.coords)
 					out.write({'geometry': mapping(polygon),
-						'properties': {'area': geom.area}})
+						'properties': {'area': geom.area, 'uid': uid}})
 			
 			# extract interior ring from polygon
 			elif (interior):
@@ -238,7 +239,7 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 					for int_geom in geom.interiors:
 						polygon = Polygon(int_geom.coords)
 						out.write({'geometry': mapping(polygon),
-							'properties': {'area': geom.area}})
+							'properties': {'area': geom.area, 'uid': uid}})
 
 			# TODO: have a `holes` option that gets all polygons within each 
 			# 	other polygon and adds them as holes to the constructor (or
@@ -247,11 +248,11 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 			# otherwise just save the raw geometry
 			else:
 				out.write({'geometry': mapping(geom),
-					'properties': {'area': geom.area}})
+					'properties': {'area': geom.area, 'uid': uid}})
 
 
 def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=100,
-	kernel=3, homo_matches=12, frame=0, min_area=1000, min_ratio=0.2, buffer=10, convex_hull=False,
+	kernel=3, homo_matches=12, frame=0, min_area=1000, min_ratio=0.2, buffer=10, uid=None, convex_hull=False,
 	centroid=False, representative_point=False, exterior=False, interior=False, demo=False):
 	"""
 	* Main function: this runs the map extraction, resulting in a file being written
@@ -361,4 +362,4 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 	# clean the dataset and output to a vector if the output file extension is .shp
 	elif output[-4:] == ".shp":
 		cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio, 
-		      convex_hull, centroid, representative_point, exterior, interior)
+		      convex_hull, centroid, representative_point, exterior, interior, uid)

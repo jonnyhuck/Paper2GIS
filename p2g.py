@@ -70,6 +70,9 @@ with catch_warnings():
     p2g_parser.add_argument('-k','--kernel', type=int, help='the size of the kernel used for opening the image', required = False, default=3)
     p2g_parser.add_argument('-i','--threshold', type=int, help='the threshold the target image', required = False, default=100)
     p2g_parser.add_argument('-m','--homo_matches', type=int, help='the number of matches required for homography', required = False, default=12)
+    
+    # add user id to the output shapefile
+    p2g_parser.add_argument('-u','--uid', type=int, help='user ID number to add the the output shapefile', required = False)
 
     # TODO: perhaps also make this happen automatically if not enough matches are found? Need to experiment...
     p2g_parser.add_argument('-f','--frame', type=float, help='a frame to add round the image if the map is too close to the edge', required = False, default=0)
@@ -108,7 +111,7 @@ with catch_warnings():
         from paper2gis.paper2gis import run_extract
         run_extract(args.reference, args.target, args.output, args.lowe_distance,
             args.threshold, args.kernel, args.homo_matches, args.frame, args.min_area,
-            args.min_ratio, args.buffer, args.convex_hull=='True', 
+            args.min_ratio, args.buffer, args.uid, args.convex_hull=='True', 
             args.centroid=='True', args.representative_point=='True', 
             args.exterior=='True', args.interior=='True', args.demo=='True')
     
