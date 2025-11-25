@@ -285,9 +285,9 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 	
 	vprint(f"  - Features written: {feature_count}")
 	vprint(f"  - Features dropped:")
-	vprint(f"    * Too small: {dropped_count['small']}")
-	vprint(f"    * Wrong ratio: {dropped_count['ratio']}")
+	vprint(f"    * Area too small: {dropped_count['small']}")
 	vprint(f"    * Intersected edge: {dropped_count['edge']}")
+	vprint(f"    * Aspect ratio too small: {dropped_count['ratio']}")
 	vprint(f"  - Successfully written to {output}")
 
 
@@ -346,7 +346,7 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 	# catch HEIC/heif input file
 	if Path(target).suffix.lower() in {".heic", ".heif"}:
 		vprint("Converting HEIC/HEIF format...")
-		if demo:
+		if demo and not _VERBOSE:
 			print("Converting HEIC/HEIF format...")
 		
 		# register HEIF opener with Pillow and open the file
@@ -386,7 +386,7 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 	try:
 		geodata = decode(reference_img, symbols=[ZBarSymbol.QRCODE])[0].data.decode("utf-8").split(",")
 		vprint(f"Map CRS: EPSG:{geodata[4]}, UUID: {geodata[-1]}")
-		if demo:
+		if demo and not _VERBOSE:
 			print(f"Map CRS: EPSG:{geodata[4]}, UUID: {geodata[-1]}")
 	except IndexError:
 		raise Exception('NOT A PAPER2GIS MAP', "Reference image is not a Paper2GIS map")
