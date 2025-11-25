@@ -94,11 +94,17 @@ Example call with a map drawn using OSM tiles:
 python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585 -o test2.png -t True -z 10
 ```
 
+To enable verbose output showing detailed progress information, add the `-v` or `--verbose` flag:
+
+```
+python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585 -o test2.png -t True -z 10 -v
+```
+
 Full details:
 
 ```
 usage: Paper2GIS generate [-h] -a BL_X -b BL_Y -c TR_X -d TR_Y [-e EPSG] [-r RESOLUTION] [-i INPUT] [-o OUTPUT] [-t {True,False}] [-f FADE] [-z ZOOM] [-s {True,False}] [-sa HILLSHADEALPHA] [-bf BOUNDARYFILE]
-                          [-bw BOUNDARYWIDTH] [-bc BOUNDARYCOLOUR] [-ba BOUNDARYALPHA]
+                          [-bw BOUNDARYWIDTH] [-bc BOUNDARYCOLOUR] [-ba BOUNDARYALPHA] [-v]
 
 options:
   -h, --help            show this help message and exit
@@ -129,6 +135,7 @@ options:
                         the colour of the boundary line
   -ba BOUNDARYALPHA, --boundaryalpha BOUNDARYALPHA
                         the alpha (opacity) of the boundary line
+  -v, --verbose         enable verbose output
 ```
 
 ### Extract markup from an image of a used Paper2GIS layout (`p2g.py extract`)
@@ -143,6 +150,12 @@ Example call for extraction:
 
 ```
 python p2g.py extract --reference map.png --target in.jpg -o out.shp --threshold 100 --kernel 0
+```
+
+To enable verbose output showing detailed progress information, add the `-v` or `--verbose` flag:
+
+```
+python p2g.py extract --reference map.png --target in.jpg -o out.shp --threshold 100 --kernel 0 -v
 ```
 
 Full details:
@@ -161,7 +174,7 @@ options:
 usage: Paper2GIS extract [-h] -r REFERENCE -t TARGET [-o OUTPUT] [-l LOWE_DISTANCE] [-k KERNEL] [-i THRESHOLD]
                          [-m HOMO_MATCHES] [-u UID] [-f FRAME] [-a MIN_AREA] [-x MIN_RATIO] [-b BUFFER]
                          [-cc {True,False}] [-cx {True,False}] [-cr {True,False}] [-ce {True,False}] [-ci {True,False}]
-                         [-d {True,False}]
+                         [-d {True,False}] [-v]
 
 options:
   -h, --help            show this help message and exit
@@ -200,6 +213,7 @@ options:
                         extract polygons from boundaries by extracting the inner rings
   -d {True,False}, --demo {True,False}
                         the output data file
+  -v, --verbose         enable verbose output
 ```
 
 Note that the `-cc`, `-cx`, `-cr`, `-ce` and `-ci` parameters allow you to control what type of geometry output you get (without these, the markup is converted directly to polygons).

@@ -18,6 +18,15 @@ from PIL import Image, ImageDraw, ImageFont
 from qrcode.constants import ERROR_CORRECT_L
 from cartopy.io.img_tiles import GoogleTiles
 
+
+# Module-level verbose flag
+_VERBOSE = False
+
+def vprint(*args, **kwargs):
+	"""Print only if verbose mode is enabled"""
+	if _VERBOSE:
+		print(*args, **kwargs)
+
 class ShadedReliefESRI(GoogleTiles):
     """
     * Custom class for hillshade tiles from ESRI, see: 
@@ -60,6 +69,8 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85, h
 	from matplotlib import pyplot as plt
 	from cartopy.io.img_tiles import OSM
 
+	vprint(f"Downloading OSM tiles (zoom={zoom}, dimensions={w}x{h})...")
+
 	# user warning if zoom has not been set
 	if zoom == 0:
 		print("\nWARNING: the tile zoom level is set to 0 (default), which will not likely give a satisfactory \
@@ -82,6 +93,7 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85, h
 		mid_point = bl_y + map_h / 2
 		bl_y = mid_point - half_map_height
 		tr_y = mid_point + half_map_height
+		vprint(f"Adjusted bounds to fit template (added height)")
 
 	# otherwise it is too tall, so preserve height (add width)
 	else:               
@@ -89,6 +101,7 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85, h
 		mid_point = bl_x + map_w / 2
 		bl_x = mid_point - half_map_width
 		tr_x = mid_point + half_map_width
+		vprint(f"Adjusted bounds to fit template (added width)")
 
 	# create a figure at the desired size and a GeoAxis
 	# TODO: This ia a bodge where I make the map too big then shrink - shouldn't be necessary
@@ -105,11 +118,13 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85, h
 	
 	# add hillshade if needed
 	if hillshade:
+		vprint(f"Adding hillshade layer (alpha={hillshade_alpha})")
 		shade = ShadedReliefESRI()
 		ax.add_image(shade, zoom, alpha=hillshade_alpha)
 	
 	# add LD boundary
 	if boundary_file:
+		vprint(f"Adding boundary layer: {boundary_file}")
 		import cartopy.io.shapereader as shpreader
 		
 		# open the boundary file
@@ -151,7 +166,7 @@ def mm2px(mm, dpi=96):
 
 
 def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, zoom, hillshade, 
-				 hillshade_alpha, boundary_file, boundary_width, boundary_colour, boundary_alpha):
+				 hillshade_alpha, boundary_file, boundary_width, boundary_colour, boundary_alpha, verbose=False):
 	"""
 	* Generate a Paper2GIS layout from an existing map, or generate one from tiles
 	* 
@@ -174,6 +189,15 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 	* 	- The box_size parameter controls how many pixels each box of the QR code is.
 	* 	- The border parameter controls how many boxes thick the border should be (the default is 4, which is the minimum according to the specs).
 	"""
+
+	# Set module-level verbose flag
+	global _VERBOSE
+	_VERBOSE = verbose
+
+	source = f"OSM tiles (zoom={zoom})" if tiles else in_path
+	vprint(f"\nGenerating Paper2GIS layout: {source} -> {out_path}")
+	vprint(f"Parameters: EPSG:{epsg}, bounds=[{blX}, {blY}, {trX}, {trY}]")
+
 	# init qrcode object
 	qr = QRCode(
 		version=1,
@@ -184,6 +208,7 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 
 	# get unique number hex (truncate to 8 characters)
 	uid = uuid4().hex[:8]
+	vprint(f"Generated UUID: {uid}")
 
 	# page dimensions in mm
 	w_mm = 297
@@ -231,8 +256,10 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 		trX = str(c[2])
 		trY = str(c[3])
 	else:
+		vprint(f"Loading map image: {in_path}")
 		try:
 			in_map = Image.open(in_path)
+			vprint(f"Loaded: {in_map.size[0]}x{in_map.size[1]} pixels")
 		except FileNotFoundError:
 			print("ERROR: cannot open input map file, please check file path")
 			exit()
@@ -241,6 +268,7 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 	map = expand(expand(in_map, border=4, fill='black'), border=2, fill='white')
 
 	# generate random noise for border
+	vprint("Compositing layout with border and map...")
 	noise = rand((map_height + page_buffer*2 + 6*2)//divider, page_w//divider, 3) * 255
 
 	# turn random noise into greyscale image
@@ -250,6 +278,8 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 	# add the map to the image
 	page.paste(map, (page_buffer, page_buffer))
 
+	vprint("Generating QR code with georeferencing metadata...")
+	
 	# add data to qr object, 'make' and export to image
 	qr.add_data(','.join([blX, blY, trX, trY, epsg, str(page_buffer+6), str(page_buffer+6), str(page_buffer+map.size[0]-6), str(page_buffer+map.size[1]-6), uid]))
 	qr.make(fit=True)
@@ -300,6 +330,7 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 	# save the result
 	try:
 		page.save(out_path, 'PNG')
+		vprint(f"Saved layout to {out_path}")
 	except FileNotFoundError:
 		print("ERROR: Cannot create output file - please check file path")
 		exit()
