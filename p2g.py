@@ -6,10 +6,11 @@ This is the CLI interface for Paper2GIS, it is used to generate new layouts and 
 Example usage:
     Convert a map to a Paper2GIS layout:
         `python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585`
-        `python p2g.py generate -a -393872.67 -b 7414244.26 -c -340247.96 -d 7476887.78 -o talla-hart-fells-shade.png -t True -z 11 -s True`
+        `python p2g.py generate -a -393872.67 -b 7414244.26 -c -340247.96 -d 7476887.78 -o talla-hart-fells-shade.png -t True -z 11 -s True -v`
 
     Extract Markup from an image of a Paper2GIS layout:
         `python p2g.py extract --reference out.png --target ./data/IMG_9441.jpg -o ./out/path.tif --threshold 100 --kernel 0`
+        `python p2g.py extract --reference out.png --target ./data/IMG_9441.jpg -o ./out/path.tif --threshold 100 --kernel 0 --verbose`
 """
 
 # import argparser
@@ -59,6 +60,9 @@ with catch_warnings():
     g2p_parser.add_argument('-bc','--boundarycolour', help='the colour of the boundary line', required=False, default='blue')
     g2p_parser.add_argument('-ba','--boundaryalpha', type=float, help='the alpha (opacity) of the boundary line', required=False, default=0.1)
 
+    # verbose mode
+    g2p_parser.add_argument('-v','--verbose', action='store_true', help='enable verbose output', required=False, default=False)
+
 
     ''' SET UP ARGS FOR EXTRACT '''
 
@@ -91,6 +95,9 @@ with catch_warnings():
 
     # runtime settings
     p2g_parser.add_argument('-d','--demo', choices=['True', 'False'], help='the output data file', required = False, default = 'False')
+    
+    # verbose mode
+    p2g_parser.add_argument('-v','--verbose', action='store_true', help='enable verbose output', required=False, default=False)
 
 
     ''' PARSE ARGS AND RUN '''
@@ -104,7 +111,7 @@ with catch_warnings():
         run_generate(args.bl_x, args.bl_y, args.tr_x, args.tr_y, args.epsg, 
             args.resolution, args.input, args.output, args.tiles == 'True', 
             args.fade, args.zoom, args.hillshade=='True', args.hillshadealpha, 
-            args.boundaryfile, args.boundarywidth, args.boundarycolour, args.boundaryalpha)
+            args.boundaryfile, args.boundarywidth, args.boundarycolour, args.boundaryalpha, args.verbose)
 
     # extract markup from a photograph of a map and store the result in the specified file
     elif args.command == "extract":
@@ -113,7 +120,7 @@ with catch_warnings():
             args.threshold, args.kernel, args.homo_matches, args.frame, args.min_area,
             args.min_ratio, args.buffer, args.uid, args.convex_hull=='True', 
             args.centroid=='True', args.representative_point=='True', 
-            args.exterior=='True', args.interior=='True', args.demo=='True')
+            args.exterior=='True', args.interior=='True', args.demo=='True', args.verbose)
     
     # run on test dataset, compare result to baseline and report
     elif args.command == "test":

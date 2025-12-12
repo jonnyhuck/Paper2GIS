@@ -40,6 +40,15 @@ from cv2 import findHomography, perspectiveTransform, warpPerspective, morpholog
 	FlannBasedMatcher, threshold, imwrite, imread, cvtColor, medianBlur, SIFT_create
 
 
+# Module-level verbose flag
+_VERBOSE = False
+
+def vprint(*args, **kwargs):
+	"""Print only if verbose mode is enabled"""
+	if _VERBOSE:
+		print(*args, **kwargs)
+
+
 def extract_map(reference_img, target_img, lowe_distance, homo_matches):
 	"""
 	* Identify one image inside another, extract and perspective transform
@@ -48,9 +57,11 @@ def extract_map(reference_img, target_img, lowe_distance, homo_matches):
 	"""
 
 	# find the keypoints and descriptors with SIFT
+	vprint("Detecting keypoints with SIFT...")
 	sift = SIFT_create()
 	kp1, des1 = sift.detectAndCompute(target_img, None)
 	kp2, des2 = sift.detectAndCompute(reference_img, None)
+	vprint(f"Found {len(kp1)} keypoints in target, {len(kp2)} in reference")
 
 	# do some FLANN matching
 	flann = FlannBasedMatcher(dict(algorithm=0, trees=10), dict(checks=50))
@@ -61,6 +72,8 @@ def extract_map(reference_img, target_img, lowe_distance, homo_matches):
 	for m,n in matches:
 		if m.distance < lowe_distance * n.distance:
 			good.append(m)
+	
+	vprint(f"Matched features: {len(good)} good matches (minimum required: {homo_matches})")
 
 	# if there are not enough "good matches", report and exit
 	if len(good) < homo_matches:
@@ -71,6 +84,7 @@ def extract_map(reference_img, target_img, lowe_distance, homo_matches):
 	dst_pts = float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
 
 	# do some homography
+	vprint("Computing homography and warping image...")
 	M, mask = findHomography(src_pts, dst_pts, RANSAC, 10)
 	if M is None:
 		raise Exception('NO HOMOGRAPHY', "Failed to calculate Homography")
@@ -106,6 +120,7 @@ def processImage(referenceImg, participantMap, lowe_distance,
 		imwrite("./demo/4.cropped.png", cropped_map)
 
 	# threshold the image to extract markup
+	vprint("Extracting markup with thresholding and morphology...")
 	_, thresh_map = threshold(medianBlur(cropped_map, 7), thresh, 255, THRESH_BINARY_INV)
 	if demo:
 		imwrite("./demo/5.thresholded.png", thresh_map)
@@ -131,6 +146,10 @@ def writeTiff(output, opened_map, geodata):
 	* @author jonnyhuck
 	"""
 
+	vprint(f"\nWriting output to GeoTIFF:")
+	vprint(f"  - Dimensions: {opened_map.shape[1]} x {opened_map.shape[0]} pixels")
+	vprint(f"  - CRS: EPSG:{geodata[4]}")
+
 	# output dataset to raster
 	with rio_open(output, 'w', driver='GTiff', height=opened_map.shape[0],
 		width=opened_map.shape[1], count=1, dtype='uint8', crs="EPSG:" + geodata[4],
@@ -147,6 +166,8 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 	* @author jonnyhuck
 	"""
 
+	vprint(f"Vectorizing and cleaning (min_area={min_area}, min_ratio={min_ratio}, buffer={buffer})...")
+
 	# make a mask of which cells we want to extract
 	mask = opened_map == 255
 
@@ -160,6 +181,9 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 	geom_type = 'Point' if any([centroid, representative_point]) else 'Polygon'
 
 	# open shapefile for writing
+	feature_count = 0
+	dropped_count = {'small': 0, 'ratio': 0, 'edge': 0}
+	
 	with fio_open(output, 'w', driver="ESRI Shapefile", crs=f"EPSG:{geodata[4]}",
 		schema={'geometry': geom_type, 'properties': {'area':'float', 'uid':'int'}}) as out:
 
@@ -185,15 +209,18 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 			# if too small, drop (either convex hull or regular geom)
 			the_area = geom.convex_hull.area if convex_hull else geom.area
 			if the_area < min_area:
+				dropped_count['small'] += 1
 				continue
 
 			# if wrong ratio between width & height of bounding box, drop
 			sides = [geom.bounds[2] - geom.bounds[0], geom.bounds[3] - geom.bounds[1]]
 			if min(sides) / max(sides) < min_ratio:
+				dropped_count['ratio'] += 1
 				continue
 
 			# if intersects edge, clip it
 			if geom.intersects(edge):
+				dropped_count['edge'] += 1
 				# TODO: subdivide into individual geoms
 				geom = geom.difference(edge)
 
@@ -205,16 +232,19 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 			if (convex_hull):
 				out.write({'geometry': mapping(geom.convex_hull),
 					'properties': {'area': geom.convex_hull.area, 'uid': uid}})
+				feature_count += 1
 			
 			# if centroid is desired, save that
 			elif (centroid):
 				out.write({'geometry': mapping(geom.centroid),
 					'properties': {'area': 0, 'uid': uid}})
+				feature_count += 1
 
 			# if rep point is desired, save that
 			elif (representative_point):
 				out.write({'geometry': mapping(geom.representative_point()),
 					'properties': {'area': 0, 'uid': uid}})
+				feature_count += 1
 			
 			# extract exterior ring from polygon
 			elif (exterior):
@@ -227,6 +257,7 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 					polygon = Polygon(g.exterior.coords)
 					out.write({'geometry': mapping(polygon),
 						'properties': {'area': geom.area, 'uid': uid}})
+					feature_count += 1
 			
 			# extract interior ring from polygon
 			elif (interior):
@@ -240,6 +271,7 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 						polygon = Polygon(int_geom.coords)
 						out.write({'geometry': mapping(polygon),
 							'properties': {'area': geom.area, 'uid': uid}})
+						feature_count += 1
 
 			# TODO: have a `holes` option that gets all polygons within each 
 			# 	other polygon and adds them as holes to the constructor (or
@@ -249,16 +281,31 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 			else:
 				out.write({'geometry': mapping(geom),
 					'properties': {'area': geom.area, 'uid': uid}})
+				feature_count += 1
+	
+	vprint(f"  - Features written: {feature_count}")
+	vprint(f"  - Features dropped:")
+	vprint(f"    * Area too small: {dropped_count['small']}")
+	vprint(f"    * Intersected edge: {dropped_count['edge']}")
+	vprint(f"    * Aspect ratio too small: {dropped_count['ratio']}")
+	vprint(f"  - Successfully written to {output}")
 
 
 def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=100,
 	kernel=3, homo_matches=12, frame=0, min_area=1000, min_ratio=0.2, buffer=10, uid=None, convex_hull=False,
-	centroid=False, representative_point=False, exterior=False, interior=False, demo=False):
+	centroid=False, representative_point=False, exterior=False, interior=False, demo=False, verbose=False):
 	"""
 	* Main function: this runs the map extraction, resulting in a file being written
 	*  to the desired location
 	* @author jonnyhuck
 	"""
+
+	# Set module-level verbose flag
+	global _VERBOSE
+	_VERBOSE = verbose
+	
+	vprint(f"\nExtracting markup: {target} -> {output}")
+	vprint(f"Parameters: threshold={thresh}, kernel={kernel}, lowe_distance={lowe_distance}, min_matches={homo_matches}")
 
 	# make sure there are not any conflicting output options specified
 	if sum([convex_hull, centroid, representative_point, exterior, interior]) > 1:
@@ -298,8 +345,9 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 
 	# catch HEIC/heif input file
 	if Path(target).suffix.lower() in {".heic", ".heif"}:
-		if demo:
-			print("converting HEIC...")
+		vprint("Converting HEIC/HEIF format...")
+		if demo and not _VERBOSE:
+			print("Converting HEIC/HEIF format...")
 		
 		# register HEIF opener with Pillow and open the file
 		pillow_heif.register_heif_opener()
@@ -315,6 +363,7 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 	# read in participant map and greyscale
 	participant_map = cvtColor(ref_np, COLOR_BGR2GRAY)
 	if frame > 0:
+		vprint(f"Adding frame (multiplier: {frame})")
 		# make a white background
 		h, w = participant_map.shape
 		
@@ -336,8 +385,9 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 	# get metadata from QR code
 	try:
 		geodata = decode(reference_img, symbols=[ZBarSymbol.QRCODE])[0].data.decode("utf-8").split(",")
-		if demo:
-			print('QR_DATA=', geodata)
+		vprint(f"Map CRS: EPSG:{geodata[4]}, UUID: {geodata[-1]}")
+		if demo and not _VERBOSE:
+			print(f"Map CRS: EPSG:{geodata[4]}, UUID: {geodata[-1]}")
 	except IndexError:
 		raise Exception('NOT A PAPER2GIS MAP', "Reference image is not a Paper2GIS map")
 
@@ -350,7 +400,7 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 		# print("WARNING - can't read QR code in target image")
 		pass	# never seems to manage to read it!
 
-	# run the imageb processing to get binary result array
+	# run the image processing to get binary result array
 	opened_map = processImage(reference_img, participant_map, lowe_distance,
 		homo_matches, geodata, thresh, kernel, demo)
 
@@ -363,3 +413,5 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 	elif output[-4:] == ".shp":
 		cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio, 
 		      convex_hull, centroid, representative_point, exterior, interior, uid)
+	
+	vprint("Extraction complete!")
