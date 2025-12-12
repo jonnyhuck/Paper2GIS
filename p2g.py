@@ -48,10 +48,10 @@ with catch_warnings():
     g2p_parser.add_argument('-o','--output', help='the output data file (file path)', required=False, default='out.png')
 
     # create a map image (this or input file path is required)
-    g2p_parser.add_argument('-t','--tiles', choices=['True', 'False'], help='create a OSM map (ignores --input)', required=False, default='False')
+    g2p_parser.add_argument('-t','--tiles', action='store_true', help='create a OSM map (ignores --input)', required=False, default='False')
     g2p_parser.add_argument('-f','--fade', type=int, help='intensity of the white filter over the tiles (0-255)', required=False, default=85)
     g2p_parser.add_argument('-z','--zoom', type=int, help='requested zoom level of OSM tiles (necessary if using tiles)', required=False, default=0)
-    g2p_parser.add_argument('-s','--hillshade', choices=['True', 'False'], help='add hillshade to generated OSM map', required=False, default='False')
+    g2p_parser.add_argument('-s','--hillshade', action='store_true', help='add hillshade to generated OSM map', required=False, default='False')
     g2p_parser.add_argument('-sa','--hillshadealpha', type=float, help='the alpha value for the hillshade layer', required=False, default=0.25)
     
     # boundary dataset
@@ -87,14 +87,14 @@ with catch_warnings():
     p2g_parser.add_argument('-b','--buffer', type=float, help='buffer around the edge used for data cleaning', required = False, default = 10)
 
     # for vector output - do you want a convex hull or not?
-    p2g_parser.add_argument('-cc','--convex_hull', choices=['True', 'False'], help='store convex hulls of extracted shapes?', required = False, default = 'False')
-    p2g_parser.add_argument('-cx','--centroid', choices=['True', 'False'], help='store centroids of extracted shapes?', required = False, default = 'False')
-    p2g_parser.add_argument('-cr','--representative_point', choices=['True', 'False'], help='store representative points of extracted shapes?', required = False, default = 'False')
-    p2g_parser.add_argument('-ce','--exterior', choices=['True', 'False'], help='extract polygons from boundaries by extracting the outer ring', required = False, default = 'False')
-    p2g_parser.add_argument('-ci','--interior', choices=['True', 'False'], help='extract polygons from boundaries by extracting the inner rings', required = False, default = 'False')
+    p2g_parser.add_argument('-cc','--convex_hull', action='store_true', help='store convex hulls of extracted shapes?', required = False, default = 'False')
+    p2g_parser.add_argument('-cx','--centroid', action='store_true', help='store centroids of extracted shapes?', required = False, default = 'False')
+    p2g_parser.add_argument('-cr','--representative_point', action='store_true', help='store representative points of extracted shapes?', required = False, default = 'False')
+    p2g_parser.add_argument('-ce','--exterior', action='store_true', help='extract polygons from boundaries by extracting the outer ring', required = False, default = 'False')
+    p2g_parser.add_argument('-ci','--interior', action='store_true', help='extract polygons from boundaries by extracting the inner rings', required = False, default = 'False')
 
     # runtime settings
-    p2g_parser.add_argument('-d','--demo', choices=['True', 'False'], help='the output data file', required = False, default = 'False')
+    p2g_parser.add_argument('-d','--demo', action='store_true', help='the output data file', required = False, default = 'False')
     
     # verbose mode
     p2g_parser.add_argument('-v','--verbose', action='store_true', help='enable verbose output', required=False, default=False)
