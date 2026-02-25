@@ -312,7 +312,7 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 
 	# add attribution text
 	year = str(datetime.today().year)
-	attribution_text_list = ["Paper2GIS Copyright", year, "Dr Jonny Huck: https://github.com/jonnyhuck/paper2gis."]
+	attribution_text_list = ["Paper2GIS Copyright", year, "Prof. Jonny Huck: https://github.com/jonnyhuck/paper2gis."]
 	if tiles:
 		attribution_text_list += ["\nMap data Copyright", year, "OpenStreetMap Contributors."]
 		if hillshade:
