@@ -160,11 +160,10 @@ with catch_warnings():
         run_generate(-393872.67, 7414244.26, -340247.96, 7476887.78, epsg='3857', dpi=96,
             out_path='test/testgen.png', tiles=True, fade=85, zoom=11)
         diff = array(ImageChops.difference(Image.open('test/reference.png'), Image.open('test/testgen.png')))
-        print(f"Generation works!\nThe result is {count_nonzero(diff) / diff.size * 100:.2f}% different to the reference version (a small difference is expected).")
+        print(f"Generation works!\nThe result is {count_nonzero(diff) / diff.size * 100:.2f}% different to the reference version (<1% is expected).")
 
         # test extraction
         print("\nRunning test image extraction...")
-        print("The following warning about the QR code is expected - you can safely ignore this")
         run_extract('test/reference.png', 'test/target.jpg', 'test/test_out.tif', ignore_qr=True)
         diff = array(ImageChops.difference(Image.open('test/out.tif'), Image.open('test/test_out.tif')))
         print(f"Extraction works!\nThe result is {count_nonzero(diff) / diff.size * 100:.2f}% different to the reference version (0% is expected).\n")
