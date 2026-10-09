@@ -65,8 +65,6 @@ def estimate_homography(src_pts, dst_pts, magsac, reproj_threshold):
 	"""
 	* Estimate a homography from matched points, using either RANSAC or MAGSAC
 	*  (MAGSAC is more tolerant of a high proportion of incorrect matches)
-	* @author jonnyhuck
-	* @return the homography (or None) and the number of inliers
 	"""
 
 	# choose the robust estimation method
@@ -83,8 +81,6 @@ def estimate_homography(src_pts, dst_pts, magsac, reproj_threshold):
 def check_homography(M, inliers, reference_shape, target_shape):
 	"""
 	* Sanity check a homography, so that a bad one does not silently produce garbage
-	* @author jonnyhuck
-	* @return None if the homography looks OK, otherwise a description of the problem
 	"""
 
 	# make sure that there is a homography
@@ -122,8 +118,6 @@ def homography_from_markers(reference_img, target_img, magsac, min_markers, demo
 	"""
 	* Calculate the homography between the photograph and the reference using the ArUco
 	*  marker border. Each marker has a unique id, so we know exactly which corners match
-	* @author jonnyhuck
-	* @return the homography, or None if it cannot be calculated (e.g. an older layout without markers)
 	"""
 
 	# find the markers in the reference image
@@ -173,8 +167,6 @@ def homography_from_sift(reference_img, target_img, lowe_distance, homo_matches,
 	"""
 	* Calculate the homography between the photograph and the reference using SIFT features
 	*  from the map itself (for older layouts without markers, or if the markers are not found)
-	* @author jonnyhuck
-	* @return the homography (for the full resolution target image)
 	"""
 
 	# downscale the photograph to roughly the size of the reference, as fine detail in a high resolution
@@ -251,8 +243,6 @@ def read_target_qr(target_img, M, qr_rect, scale=4, pad=12):
 	"""
 	* Read the QR code from the photograph, using the homography to rectify (and upscale) just the
 	*  area around the QR code first, as it is usually too small / distorted to read in the raw photo
-	* @author jonnyhuck
-	* @return the uid stored in the QR code, or None if it cannot be read
 	"""
 
 	# get the location of the QR code in the reference image
@@ -271,8 +261,6 @@ def find_map_homography(reference_img, target_img, lowe_distance, homo_matches, 
 	downscale=1.5, min_markers=4, max_features=10000):
 	"""
 	* Identify one image inside another
-	* @author jonnyhuck
-	* @return the homography that transforms the target image onto the reference image
 	"""
 
 	# first try to locate the map using the ArUco markers
@@ -288,8 +276,6 @@ def find_map_homography(reference_img, target_img, lowe_distance, homo_matches, 
 def extract_map(reference_img, target_img, lowe_distance, homo_matches, demo, **kwargs):
 	"""
 	* Identify one image inside another, extract and perspective transform
-	* @author jonnyhuck
-	* @return a numpy array representing the extracted and rectified map
 	"""
 
 	# get the homography
@@ -304,8 +290,6 @@ def processImage(referenceImg, participantMap, lowe_distance, homo_matches, geod
 	magsac=False, downscale=1.5, max_features=10000, qr_rect=None, ignore_qr=False):
 	"""
 	* The image processing steps for extracting the markup data from the image
-	* @author jonnyhuck
-	* @return a binary numpy array of (255) markup and (0) background
 	"""
 
 	# locate the map in the target image
@@ -380,7 +364,6 @@ def writeTiff(output, opened_map, geodata):
 	* Write a numpy array to a GeoTiff - this is mostly here for backward compatibility,
 	*  expected behaviour is to output to shapefile as this has data cleaning steps to
 	*  improve the output
-	* @author jonnyhuck
 	"""
 
 	vprint(f"\nWriting output to GeoTIFF:")
@@ -400,7 +383,6 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 						convex_hull, centroid, representative_point, exterior, interior, uid):
 	"""
 	* Clean an output dataset and write to a shapefile
-	* @author jonnyhuck
 	"""
 
 	vprint(f"Vectorizing and cleaning (min_area={min_area}, min_ratio={min_ratio}, buffer={buffer})...")
@@ -535,7 +517,6 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 	"""
 	* Main function: this runs the map extraction, resulting in a file being written
 	*  to the desired location
-	* @author jonnyhuck
 	*
 	* Registration options:
 	* 	magsac: use MAGSAC rather than RANSAC to calculate the homography

@@ -198,8 +198,6 @@ def make_uid(georeferencing, source):
 	*
 	*     georeferencing: the bounds, crs and pixel location of the map in the layout (as in the QR code)
 	*     source: a description of where the map came from (the tile settings, or the input image file)
-	* @author jonnyhuck
-	* @return the id as a string
 	"""
 	return sha256(f"{georeferencing}|{source}".encode("utf-8")).hexdigest()[:8]
 
@@ -209,8 +207,6 @@ def add_marker_border(page, x0, y0, x1, y1):
 	* Draw a ring of ArUco markers (at regular intervals) onto the page, inside the
 	*  rectangle x0, y0, x1, y1. Each marker has a unique id, so that the extraction
 	*  process knows exactly where each one is on the reference layout
-	* @author jonnyhuck
-	* @return the number of markers drawn
 	"""
 
 	# the desired distance between markers (one marker plus a marker-sized white gap)
