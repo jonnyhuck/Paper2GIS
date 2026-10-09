@@ -301,7 +301,7 @@ def extract_map(reference_img, target_img, lowe_distance, homo_matches, demo, **
 
 
 def processImage(referenceImg, participantMap, lowe_distance, homo_matches, geodata, thresh, kernel, demo,
-	magsac=False, downscale=1.5, max_features=10000, qr_rect=None):
+	magsac=False, downscale=1.5, max_features=10000, qr_rect=None, ignore_qr=False):
 	"""
 	* The image processing steps for extracting the markup data from the image
 	* @author jonnyhuck
@@ -313,13 +313,31 @@ def processImage(referenceImg, participantMap, lowe_distance, homo_matches, geod
 		magsac=magsac, downscale=downscale, max_features=max_features)
 
 	# verify that the photo matches the reference by reading the (rectified) QR code in the photo
+	#  this matters most for marker layouts: the markers are the same on every layout, so a photo of
+	#  one map will align perfectly with the reference for any other map, and the result will be wrong
 	if qr_rect is not None:
 		target_uid = read_target_qr(participantMap, M, qr_rect)
+
+		# QR code could not be read - always warn for marker layouts (as we cannot otherwise tell whether
+		#  the reference is correct), but only in verbose mode for older layouts (where it often fails)
 		if target_uid is None:
-			vprint("Could not read the QR code in the photograph, so cannot verify that it matches the reference")
+			message = "the QR code in the photograph could not be read, so cannot verify that the reference image is correct"
+			if detect_markers(referenceImg):
+				print(f"WARNING: {message}")
+			else:
+				vprint(message[0].upper() + message[1:])
+
+		# QR code does not match - this is an error unless the user has chosen to ignore it (e.g. for a
+		#  map that has been regenerated with the same extent, which will have a new uid)
 		elif target_uid != geodata[-1]:
-			print(f"WARNING: the QR code in the photograph ({target_uid}) does not match the reference ({geodata[-1]}) - " \
-				"check that you are using the correct reference image!")
+			message = f"the QR code in the photograph ({target_uid}) does not match the reference image ({geodata[-1]})"
+			if ignore_qr:
+				print(f"WARNING: {message} - continuing anyway as --ignore_qr is set")
+			else:
+				raise Exception('WRONG REFERENCE', f"{message[0].upper() + message[1:]} - check that you are using the " \
+					"correct reference image, or use --ignore_qr if you are sure that it is the same map")
+
+		# QR code matches
 		else:
 			vprint(f"QR code in photograph matches reference ({target_uid})")
 
@@ -513,7 +531,7 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=100,
 	kernel=3, homo_matches=12, frame=0, min_area=1000, min_ratio=0.2, buffer=10, uid=None, convex_hull=False,
 	centroid=False, representative_point=False, exterior=False, interior=False, demo=False, verbose=False,
-	magsac=False, downscale=1.5, max_features=10000):
+	magsac=False, downscale=1.5, max_features=10000, ignore_qr=False):
 	"""
 	* Main function: this runs the map extraction, resulting in a file being written
 	*  to the desired location
@@ -523,6 +541,8 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 	* 	magsac: use MAGSAC rather than RANSAC to calculate the homography
 	* 	downscale: shrink the photo to this multiple of the reference size for SIFT matching (0 to disable)
 	* 	max_features: the maximum number of SIFT keypoints to use in each image (0 for no limit)
+	*
+	* 	ignore_qr: continue (with a warning) if the QR code in the photo does not match the reference
 	"""
 
 	# Set module-level verbose flag
@@ -626,7 +646,7 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 
 	# run the image processing to get binary result array (this also checks the QR code in the photo matches)
 	opened_map = processImage(reference_img, participant_map, lowe_distance, homo_matches, geodata, thresh, kernel, demo,
-		magsac=magsac, downscale=downscale, max_features=max_features, qr_rect=qr.rect)
+		magsac=magsac, downscale=downscale, max_features=max_features, qr_rect=qr.rect, ignore_qr=ignore_qr)
 
 	# output to a raster if the output file extension is .tif (no cleaning)
 	if output[-4:] == ".tif":

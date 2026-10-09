@@ -8,7 +8,7 @@
 from sys import exit
 from os import path
 from math import ceil
-from uuid import uuid4
+from hashlib import sha256
 from io import BytesIO
 from qrcode import QRCode
 from numpy.random import rand
@@ -189,6 +189,21 @@ def mm2px(mm, dpi=96):
 	return int(ceil(mm * dpi / 25.4))
 
 
+def make_uid(georeferencing, source):
+	"""
+	* Make the map id (8 hex characters) as a hash of everything that defines the map, so that
+	*  two identical maps generated at different times get the same id (and so a photo of one
+	*  can be extracted using the other as the reference). The map image itself is not used, as
+	*  tiles are not rendered identically every time they are downloaded.
+	*
+	*     georeferencing: the bounds, crs and pixel location of the map in the layout (as in the QR code)
+	*     source: a description of where the map came from (the tile settings, or the input image file)
+	* @author jonnyhuck
+	* @return the id as a string
+	"""
+	return sha256(f"{georeferencing}|{source}".encode("utf-8")).hexdigest()[:8]
+
+
 def add_marker_border(page, x0, y0, x1, y1):
 	"""
 	* Draw a ring of ArUco markers (at regular intervals) onto the page, inside the
@@ -292,9 +307,6 @@ def run_generate(blX, blY, trX, trY, epsg='3857', dpi=96, in_path=None, out_path
 		border=4,
 	)
 
-	# get unique number hex (truncate to 8 characters)
-	uid = uuid4().hex[:8]
-	vprint(f"Generated UUID: {uid}")
 
 	# page dimensions in mm (A3, swapped for landscape)
 	w_mm, h_mm = (420, 297) if landscape else (297, 420)
@@ -395,9 +407,23 @@ def run_generate(blX, blY, trX, trY, epsg='3857', dpi=96, in_path=None, out_path
 
 	vprint("Generating QR code with georeferencing metadata...")
 
-	# add data to qr object, 'make' and export to image (bounds, crs, pixel coordinates of map in the layout, uid)
-	qr.add_data(','.join([blX, blY, trX, trY, epsg, str(frame_x0 + map_frame), str(frame_y0 + map_frame),
-		str(frame_x0 + map.size[0] - map_frame), str(frame_y0 + map.size[1] - map_frame), uid]))
+	# get the georeferencing information (bounds, crs, pixel coordinates of map in the layout)
+	georeferencing = [str(blX), str(blY), str(trX), str(trY), str(epsg), str(frame_x0 + map_frame), str(frame_y0 + map_frame),
+		str(frame_x0 + map.size[0] - map_frame), str(frame_y0 + map.size[1] - map_frame)]
+
+	# describe where the map came from: the tile settings, or the contents of the input image file
+	if tiles:
+		source = f"{tiles},{zoom},{fade},{hillshade},{hillshade_alpha},{boundary_file},{boundary_width},{boundary_colour},{boundary_alpha}"
+	else:
+		with open(in_path, 'rb') as f:
+			source = sha256(f.read()).hexdigest()
+
+	# make the map id from these (bounds are formatted consistently, so that e.g. '1' and '1.0' give the same id)
+	uid = make_uid(','.join([f"{float(v):.6f}" for v in georeferencing[:4]] + georeferencing[4:]), source)
+	vprint(f"Map ID: {uid}")
+
+	# add data to qr object, 'make' and export to image (georeferencing information and map id)
+	qr.add_data(','.join(georeferencing + [uid]))
 	qr.make(fit=True)
 	qrcode_im = qr.make_image()
 
@@ -441,7 +467,7 @@ def run_generate(blX, blY, trX, trY, epsg='3857', dpi=96, in_path=None, out_path
 	attribution_y = page_h - page_buffer - attribution_bbox[3]
 	draw.multiline_text((page_buffer, attribution_y), attribution_text, fill='black', font=font)
 
-	# add uuid and description text (one line above the attribution text, with a small gap)
+	# add map id and description text (one line above the attribution text, with a small gap)
 	draw.text((page_buffer, attribution_y - th * 2), f"{uid} | {descriptive_text}", fill='black', font=font)
 
 	# validate out_path is a png

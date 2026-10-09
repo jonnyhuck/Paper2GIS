@@ -47,7 +47,7 @@ It is always good to thoroughly test a map using the extractor before using a Pa
 
 Markup can be extracted as-is (marked areas will become **polygons**), as **convex hulls**, as **centroids** (point representing the geometric centroid, irrespoective of whether or not it is contained within the original polygon), as **representative points** (point that is definitely inside the original polygon) or as **polygons from boundaries** (where only the boundary is marked on the map, but a filled polygon is extracted using either the exterior interior ring(s)). All extraction can be in the form of either a ShapeFile (`.shp`) or GeoTiff (`.tif`).
 
-To locate the map in the photograph, the extractor first looks for the ArUco markers around the map. If the layout does not have them (i.e., it was made with an older version of Paper2GIS or with `--no_markers`), or not enough of them can be found, it falls back to matching features (SIFT) in the map itself. There are several options to tune this fallback (`--magsac`, `--downscale`, `--max_features`), see below. Once the map is located, the extractor reads the QR code in the photograph and warns you if it does not match the reference image (i.e., you are probably using the wrong reference image).
+To locate the map in the photograph, the extractor first looks for the ArUco markers around the map. If the layout does not have them (i.e., it was made with an older version of Paper2GIS or with `--no_markers`), or not enough of them can be found, it falls back to matching features (SIFT) in the map itself. There are several options to tune this fallback (`--magsac`, `--downscale`, `--max_features`), see below. Once the map is located, the extractor reads the QR code in the photograph and stops with an error if it does not match the reference image, as you are probably using the wrong reference image. This is important because the markers are the same on every layout, so a photograph of one map will line up perfectly with the reference image for a different map, giving a wrong result. The ID is calculated from the settings that define the map (its extent, CRS, layout and tile settings, or the input map image), so regenerating a layout with exactly the same settings gives the same ID and is fine to use as the reference. If you are sure that it is the same map but the IDs differ (e.g., it was made with an older version of Paper2GIS, which used random IDs), use `--ignore_qr` to continue anyway. If the QR code cannot be read at all, a warning is printed.
 
 ## Usage
 
@@ -184,8 +184,8 @@ Full details:
 
 ```
 usage: Paper2GIS extract [-h] -r REFERENCE -t TARGET [-o OUTPUT] [-l LOWE_DISTANCE] [-k KERNEL] [-i THRESHOLD] [-m HOMO_MATCHES] [-g]
-                         [-ds DOWNSCALE] [-mf MAX_FEATURES] [-u UID] [-f FRAME] [-a MIN_AREA] [-x MIN_RATIO] [-b BUFFER] [-cc] [-cx]
-                         [-cr] [-ce] [-ci] [-d] [-v]
+                         [-ds DOWNSCALE] [-mf MAX_FEATURES] [-u UID] [-f FRAME] [-a MIN_AREA] [-x MIN_RATIO] [-b BUFFER] [-cc] [-cx] [-cr] [-ce]
+                         [-ci] [-iq] [-d] [-v]
 
 options:
   -h, --help            show this help message and exit
@@ -223,6 +223,7 @@ options:
                         store representative points of extracted shapes?
   -ce, --exterior       extract polygons from boundaries by extracting the outer ring
   -ci, --interior       extract polygons from boundaries by extracting the inner rings
+  -iq, --ignore_qr      continue (with a warning) if the QR code in the photograph does not match the reference image
   -d, --demo            write the intermediate images to ./demo
   -v, --verbose         enable verbose output
 ```

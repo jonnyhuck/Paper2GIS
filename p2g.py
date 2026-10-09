@@ -105,6 +105,9 @@ with catch_warnings():
     p2g_parser.add_argument('-ce','--exterior', action='store_true', help='extract polygons from boundaries by extracting the outer ring', required = False, default = False)
     p2g_parser.add_argument('-ci','--interior', action='store_true', help='extract polygons from boundaries by extracting the inner rings', required = False, default = False)
 
+    # don't stop if the QR code in the photo doesn't match the reference (e.g. a reprinted map with the same extent)
+    p2g_parser.add_argument('-iq','--ignore_qr', action='store_true', help='continue (with a warning) if the QR code in the photograph does not match the reference image', required = False, default = False)
+
     # runtime settings
     p2g_parser.add_argument('-d','--demo', action='store_true', help='write the intermediate images to ./demo', required = False, default = False)
     
@@ -136,7 +139,8 @@ with catch_warnings():
             min_area=args.min_area, min_ratio=args.min_ratio, buffer=args.buffer, uid=args.uid,
             convex_hull=args.convex_hull, centroid=args.centroid, representative_point=args.representative_point,
             exterior=args.exterior, interior=args.interior, demo=args.demo, verbose=args.verbose,
-            magsac=args.magsac, downscale=args.downscale, max_features=args.max_features)
+            magsac=args.magsac, downscale=args.downscale, max_features=args.max_features,
+            ignore_qr=args.ignore_qr)
 
     # run on test dataset, compare result to baseline and report
     elif args.command == "test":
@@ -144,14 +148,23 @@ with catch_warnings():
         from numpy import array, count_nonzero
         from paper2gis.paper2gis import run_extract
         from paper2gis.gis2paper import run_generate
+        from os import remove, path
 
+        # remove the outputs of any previous test, so that old results can't be compared by mistake
+        for f in ('test/testgen.png', 'test/test_out.tif'):
+            if path.exists(f):
+                remove(f)
+
+        # test generation
         print("\nRunning test image generation...")
         run_generate(-393872.67, 7414244.26, -340247.96, 7476887.78, epsg='3857', dpi=96,
-            out_path='test/reference.png', tiles=True, fade=85, zoom=11)
+            out_path='test/testgen.png', tiles=True, fade=85, zoom=11)
         diff = array(ImageChops.difference(Image.open('test/reference.png'), Image.open('test/testgen.png')))
-        print(f"Generation works!\nThe result is {count_nonzero(diff) / diff.size * 100:.2f}% different to the reference version (up to ~15% is expected).")
+        print(f"Generation works!\nThe result is {count_nonzero(diff) / diff.size * 100:.2f}% different to the reference version (a small difference is expected).")
 
+        # test extraction
         print("\nRunning test image extraction...")
-        run_extract('test/reference.png', 'test/target.jpg', 'test/test_out.tif')
+        print("The following warning about the QR code is expected - you can safely ignore this")
+        run_extract('test/reference.png', 'test/target.jpg', 'test/test_out.tif', ignore_qr=True)
         diff = array(ImageChops.difference(Image.open('test/out.tif'), Image.open('test/test_out.tif')))
         print(f"Extraction works!\nThe result is {count_nonzero(diff) / diff.size * 100:.2f}% different to the reference version (0% is expected).\n")
