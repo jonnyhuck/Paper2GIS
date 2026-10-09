@@ -37,7 +37,7 @@ from numpy import float32, uint8, ones, zeros, array
 from shapely.geometry import shape, mapping, LineString, Polygon
 from cv2 import RANSAC, COLOR_BGR2GRAY, MORPH_OPEN, THRESH_BINARY_INV
 from cv2 import findHomography, perspectiveTransform, warpPerspective, morphologyEx, \
-	FlannBasedMatcher, threshold, imwrite, imread, cvtColor, medianBlur, SIFT_create
+	FlannBasedMatcher, threshold, imwrite, imread, cvtColor, medianBlur, SIFT_create, drawMatchesKnn
 
 
 # Module-level verbose flag
@@ -49,7 +49,7 @@ def vprint(*args, **kwargs):
 		print(*args, **kwargs)
 
 
-def extract_map(reference_img, target_img, lowe_distance, homo_matches):
+def extract_map(reference_img, target_img, lowe_distance, homo_matches, demo):
 	"""
 	* Identify one image inside another, extract and perspective transform
 	* @author jonnyhuck
@@ -69,11 +69,18 @@ def extract_map(reference_img, target_img, lowe_distance, homo_matches):
 
 	# store all the good matches as per Lowe's ratio test.
 	good = []
-	for m,n in matches:
+	matchesMask = [[0,0] for _ in range(len(matches))]
+	for i,(m,n) in enumerate(matches):
 		if m.distance < lowe_distance * n.distance:
 			good.append(m)
-	
+			matchesMask[i]=[1,0]
+
 	vprint(f"Matched features: {len(good)} good matches (minimum required: {homo_matches})")
+
+	# plot matches image for demo
+	if demo:
+		match_img = drawMatchesKnn(target_img, kp1, reference_img, kp2, matches, None, matchesMask=matchesMask)
+		imwrite('demo/2.matches.jpg', match_img)
 
 	# if there are not enough "good matches", report and exit
 	if len(good) < homo_matches:
@@ -110,7 +117,7 @@ def processImage(referenceImg, participantMap, lowe_distance,
 	"""
 
 	# extract the map from the target image
-	homoMap = extract_map(referenceImg, participantMap, lowe_distance, homo_matches)
+	homoMap = extract_map(referenceImg, participantMap, lowe_distance, homo_matches, demo)
 	if demo:
 		imwrite("./demo/3.warped.png", homoMap)
 
@@ -394,8 +401,9 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 	# verify that the target image matches the reference
 	try:
 		tmp_geodata = decode(participant_map, symbols=[ZBarSymbol.QRCODE])[0].data.decode("utf-8").split(",")
-		if geodata[-1] != tmp_geodata[-1]:
-			raise Exception('WRONG REFERENCE', "Target image does not match reference image")
+		# TODO: MAKE THIS CHECK OPTIONAL??
+		# if geodata[-1] != tmp_geodata[-1]:
+		# 	raise Exception('WRONG REFERENCE', f"Target image does not match reference image ({geodata[-1]} | {tmp_geodata[-1]})")
 	except IndexError:
 		# print("WARNING - can't read QR code in target image")
 		pass	# never seems to manage to read it!

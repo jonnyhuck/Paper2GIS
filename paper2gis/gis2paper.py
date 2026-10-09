@@ -39,6 +39,17 @@ class ShadedReliefESRI(GoogleTiles):
                z=z, y=y, x=x)
         return url
 
+class SatelliteESRI(GoogleTiles):
+    """
+    * Custom class for satellite imagery tiles from ESRI, see: 
+	"""
+    def _image_url(self, tile):
+        x, y, z = tile
+        url = ('https://server.arcgisonline.com/ArcGIS/rest/services/' \
+               'World_Imagery/MapServer/tile/{z}/{y}/{x}.jpg').format(
+               z=z, y=y, x=x)
+        return url
+
 
 def figure_to_image(fig, dpi=None):
 	"""
@@ -51,7 +62,7 @@ def figure_to_image(fig, dpi=None):
 	return img.convert("RGBA")
 
 
-def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85, hillshade=False, hillshade_alpha=0.25, 
+def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, satellite=False, fade=85, hillshade=False, hillshade_alpha=0.25, 
 				boundary_file=None, boundary_width=8, boundary_colour='blue', boundary_alpha=0.1):
 	"""
 	* Return an OSM map as a PIL image
@@ -67,7 +78,7 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85, h
 	# load additional libraries
 	from PIL.Image import BILINEAR
 	from matplotlib import pyplot as plt
-	from cartopy.io.img_tiles import OSM
+	from cartopy.io.img_tiles import OSM, GoogleTiles
 
 	vprint(f"Downloading OSM tiles (zoom={zoom}, dimensions={w}x{h})...")
 
@@ -77,7 +88,9 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, fade=85, h
 			map unless you are drawing a map of the wole world.\n")
 
 	# get OSM tile interface
-	tiler = OSM()
+	# TODO: need to build options into the interface...
+	# tiler = SatelliteESRI() if satellite else OSM()
+	tiler = GoogleTiles(style='satellite') if satellite else OSM()
 
 	# if no CRS is specified, assume Web Mercator
 	if crs is None:
@@ -164,9 +177,9 @@ def mm2px(mm, dpi=96):
 	"""
 	return int(ceil(mm * dpi / 25.4))
 
-
-def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, zoom, hillshade, 
-				 hillshade_alpha, boundary_file, boundary_width, boundary_colour, boundary_alpha, verbose=False):
+# TODO: sort the order of the args and defaults so that we can use named variables and call from Python as a lib
+def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, descriptive_text, tiles, satellite, fade, zoom, hillshade, 
+				 hillshade_alpha, boundary_file, boundary_width, boundary_colour, boundary_alpha, verbose=False, name=""):
 	"""
 	* Generate a Paper2GIS layout from an existing map, or generate one from tiles
 	* 
@@ -246,9 +259,9 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 	page = Image.new('RGB', (page_w, page_h), 'white')
 
 	# get input image or create one from tiles
-	if tiles:
+	if tiles or satellite:
 		# note we might need to overwrite the dimensions here as the map gets adjusted to fit the template
-		c, in_map = get_osm_map(float(blX), float(blY), float(trX), float(trY), zoom, 1084, 1436, fade=fade, hillshade=hillshade, 
+		c, in_map = get_osm_map(float(blX), float(blY), float(trX), float(trY), zoom, 1084, 1436, satellite=satellite, fade=fade, hillshade=hillshade, 
 						  hillshade_alpha=hillshade_alpha, boundary_file=boundary_file, boundary_width=boundary_width, 
 						  boundary_colour=boundary_colour, boundary_alpha=boundary_alpha) 
 		blX = str(c[0])
@@ -320,8 +333,8 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, tiles, fade, 
 	attribution_text = " ".join(attribution_text_list)
 	draw.text((page_buffer, page_h - mm2px(3) - th*2), attribution_text, fill='black', font=font)
 
-	# add uuid text
-	draw.text((page_buffer, page_h - mm2px(5) - th*3), uid, fill='black', font=font)
+	# add uuid and description text
+	draw.text((page_buffer, page_h - mm2px(5) - th*3), f"{uid} | {descriptive_text}", fill='black', font=font)
 
 	# validate out_path is a png
 	if out_path[-4:] != ".png":

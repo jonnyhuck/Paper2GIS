@@ -6,7 +6,7 @@ This is the CLI interface for Paper2GIS, it is used to generate new layouts and 
 Example usage:
     Convert a map to a Paper2GIS layout:
         `python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585`
-        `python p2g.py generate -a -393872.67 -b 7414244.26 -c -340247.96 -d 7476887.78 -o talla-hart-fells-shade.png -t True -z 11 -s True -v`
+        `python p2g.py generate -a 3817338.035 -b -1302039.557 -c 3818772.077 -d -1300139.848 -o nkhata-bay.png -t -z 17 -v`
 
     Extract Markup from an image of a Paper2GIS layout:
         `python p2g.py extract --reference out.png --target ./data/IMG_9441.jpg -o ./out/path.tif --threshold 100 --kernel 0`
@@ -46,12 +46,16 @@ with catch_warnings():
 
     # path to the output file
     g2p_parser.add_argument('-o','--output', help='the output data file (file path)', required=False, default='out.png')
+    
+    # descriptive text to add to the layout
+    g2p_parser.add_argument('-n','--description', help='Descriptive text that will be printed on the map', required=False, default='')
 
     # create a map image (this or input file path is required)
     g2p_parser.add_argument('-t','--tiles', action='store_true', help='create a OSM map (ignores --input)', required=False, default=False)
+    g2p_parser.add_argument('-s','--satellite', action='store_true', help='use ESRI satellite imagery instead of OSM map', required=False, default=False)
     g2p_parser.add_argument('-f','--fade', type=int, help='intensity of the white filter over the tiles (0-255)', required=False, default=85)
     g2p_parser.add_argument('-z','--zoom', type=int, help='requested zoom level of OSM tiles (necessary if using tiles)', required=False, default=0)
-    g2p_parser.add_argument('-s','--hillshade', action='store_true', help='add hillshade to generated OSM map', required=False, default=False)
+    g2p_parser.add_argument('-hs','--hillshade', action='store_true', help='add hillshade to generated OSM map', required=False, default=False)
     g2p_parser.add_argument('-sa','--hillshadealpha', type=float, help='the alpha value for the hillshade layer', required=False, default=0.25)
     
     # boundary dataset
@@ -87,8 +91,8 @@ with catch_warnings():
     p2g_parser.add_argument('-b','--buffer', type=float, help='buffer around the edge used for data cleaning', required = False, default = 10)
 
     # for vector output - do you want a convex hull or not?
-    p2g_parser.add_argument('-cc','--convex_hull', action='store_true', help='store convex hulls of extracted shapes?', required = False, default = 'False')
-    p2g_parser.add_argument('-cx','--centroid', action='store_true', help='store centroids of extracted shapes?', required = False, default = 'False')
+    p2g_parser.add_argument('-cc','--convex_hull', action='store_true', help='store convex hulls of extracted shapes?', required = False, default = False)
+    p2g_parser.add_argument('-cx','--centroid', action='store_true', help='store centroids of extracted shapes?', required = False, default = False)
     p2g_parser.add_argument('-cr','--representative_point', action='store_true', help='store representative points of extracted shapes?', required = False, default = False)
     p2g_parser.add_argument('-ce','--exterior', action='store_true', help='extract polygons from boundaries by extracting the outer ring', required = False, default = False)
     p2g_parser.add_argument('-ci','--interior', action='store_true', help='extract polygons from boundaries by extracting the inner rings', required = False, default = False)
@@ -109,9 +113,10 @@ with catch_warnings():
     if args.command == "generate":
         from paper2gis.gis2paper import run_generate
         run_generate(args.bl_x, args.bl_y, args.tr_x, args.tr_y, args.epsg, 
-            args.resolution, args.input, args.output, args.tiles, 
+            args.resolution, args.input, args.output, args.tiles, args.satellite,
             args.fade, args.zoom, args.hillshade, args.hillshadealpha, 
-            args.boundaryfile, args.boundarywidth, args.boundarycolour, args.boundaryalpha, args.verbose)
+            args.boundaryfile, args.boundarywidth, args.boundarycolour, args.boundaryalpha, 
+            args.verbose)
 
     # extract markup from a photograph of a map and store the result in the specified file
     elif args.command == "extract":

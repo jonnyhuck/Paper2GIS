@@ -91,20 +91,26 @@ python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934
 Example call with a map drawn using OSM tiles:
 
 ```
-python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585 -o test2.png -t True -z 10
+python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585 -o test2.png -t -z 10
+```
+
+or with ESRI satellite tiles
+
+```
+python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585 -o test2.png -s -z 10
 ```
 
 To enable verbose output showing detailed progress information, add the `-v` or `--verbose` flag:
 
 ```
-python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585 -o test2.png -t True -z 10 -v
+python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585 -o test2.png -t -z 10 -v
 ```
 
 Full details:
 
 ```
-usage: Paper2GIS generate [-h] -a BL_X -b BL_Y -c TR_X -d TR_Y [-e EPSG] [-r RESOLUTION] [-i INPUT] [-o OUTPUT] [-t {True,False}] [-f FADE] [-z ZOOM] [-s {True,False}] [-sa HILLSHADEALPHA] [-bf BOUNDARYFILE]
-                          [-bw BOUNDARYWIDTH] [-bc BOUNDARYCOLOUR] [-ba BOUNDARYALPHA] [-v]
+usage: Paper2GIS generate [-h] -a BL_X -b BL_Y -c TR_X -d TR_Y [-e EPSG] [-r RESOLUTION] [-i INPUT] [-o OUTPUT] [-t] [-s] [-f FADE] [-z ZOOM] [-hs]
+                          [-sa HILLSHADEALPHA] [-bf BOUNDARYFILE] [-bw BOUNDARYWIDTH] [-bc BOUNDARYCOLOUR] [-ba BOUNDARYALPHA] [-v]
 
 options:
   -h, --help            show this help message and exit
@@ -119,12 +125,11 @@ options:
                         the input map image (file path) - this is ignored if --tiles=True
   -o OUTPUT, --output OUTPUT
                         the output data file (file path)
-  -t {True,False}, --tiles {True,False}
-                        create a OSM map (ignores --input)
+  -t, --tiles           create a OSM map (ignores --input)
+  -s, --satellite       use ESRI satellite imagery instead of OSM map
   -f FADE, --fade FADE  intensity of the white filter over the tiles (0-255)
   -z ZOOM, --zoom ZOOM  requested zoom level of OSM tiles (necessary if using tiles)
-  -s {True,False}, --hillshade {True,False}
-                        add hillshade to generated OSM map
+  -hs, --hillshade      add hillshade to generated OSM map
   -sa HILLSHADEALPHA, --hillshadealpha HILLSHADEALPHA
                         the alpha value for the hillshade layer
   -bf BOUNDARYFILE, --boundaryfile BOUNDARYFILE
