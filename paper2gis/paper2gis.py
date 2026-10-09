@@ -16,8 +16,13 @@
 * python paper2gis.py --reference ./_template/the-used-one.png --target ./timnadata/IMG_9441.jpg -o ./out/path.tif --threshold 100 --kernel 0
 * python paper2gis.py --reference ./_template/the-used-one.png --target ./timna/IMG_9423.jpg -o ./out/wind.tif --threshold 100 --kernel 0
 *
+* Map registration (locating the map in the photograph):
+*	1. If the layout has an ArUco marker border, the markers are detected in both images and
+*		matched by id, giving a homography that is independent of the map content
+*	2. Otherwise (or if not enough markers are found), SIFT features are matched between the
+*		(downscaled) photograph and the reference
+*
 * TODO:
-*	- Need to implement frame option
 *	- Check other versions to make sure this is up to date
 * 	- Implement cleaning for raster outputs using: https://github.com/mapbox/rasterio/blob/fb93a6425c17f25141ad308cee7263d0c491a0a9/examples/rasterize_geometry.py
 """
@@ -27,21 +32,28 @@ from sys import exit
 from glob import glob
 from PIL import Image
 from pathlib import Path
+from numpy.linalg import inv
 from fiona import open as fio_open
 from rasterio.features import shapes
 from os import remove, path, makedirs
 from rasterio import open as rio_open
 from rasterio.transform import from_bounds
 from pyzbar.pyzbar import decode, ZBarSymbol
-from numpy import float32, uint8, ones, zeros, array
+from paper2gis.markers import detect_markers
+from numpy import float32, uint8, ones, zeros, array, concatenate, diag, dstack
 from shapely.geometry import shape, mapping, LineString, Polygon
-from cv2 import RANSAC, COLOR_BGR2GRAY, MORPH_OPEN, THRESH_BINARY_INV
+from cv2 import RANSAC, USAC_MAGSAC, COLOR_BGR2GRAY, COLOR_RGB2GRAY, COLOR_GRAY2BGR, MORPH_OPEN, THRESH_BINARY_INV, \
+	INTER_AREA
 from cv2 import findHomography, perspectiveTransform, warpPerspective, morphologyEx, \
-	FlannBasedMatcher, threshold, imwrite, imread, cvtColor, medianBlur, SIFT_create, drawMatchesKnn
+	FlannBasedMatcher, threshold, imwrite, imread, cvtColor, medianBlur, SIFT_create, drawMatchesKnn, \
+	resize, isContourConvex, contourArea, aruco
 
 
 # Module-level verbose flag
 _VERBOSE = False
+
+# the minimum number of inliers required to accept a homography (twice the minimum possible)
+MIN_INLIERS = 8
 
 def vprint(*args, **kwargs):
 	"""Print only if verbose mode is enabled"""
@@ -49,19 +61,141 @@ def vprint(*args, **kwargs):
 		print(*args, **kwargs)
 
 
-def extract_map(reference_img, target_img, lowe_distance, homo_matches, demo):
+def estimate_homography(src_pts, dst_pts, magsac, reproj_threshold):
 	"""
-	* Identify one image inside another, extract and perspective transform
+	* Estimate a homography from matched points, using either RANSAC or MAGSAC
+	*  (MAGSAC is more tolerant of a high proportion of incorrect matches)
 	* @author jonnyhuck
-	* @return a numpy array representing the extracted and rectified map
+	* @return the homography (or None) and the number of inliers
 	"""
+
+	# choose the robust estimation method
+	method = USAC_MAGSAC if magsac else RANSAC
+
+	# calculate the homography
+	M, mask = findHomography(src_pts, dst_pts, method, reproj_threshold)
+
+	# count the inliers (the matches that agree with the homography)
+	inliers = 0 if mask is None else int(mask.sum())
+	return M, inliers
+
+
+def check_homography(M, inliers, reference_shape, target_shape):
+	"""
+	* Sanity check a homography, so that a bad one does not silently produce garbage
+	* @author jonnyhuck
+	* @return None if the homography looks OK, otherwise a description of the problem
+	"""
+
+	# make sure that there is a homography
+	if M is None:
+		return "no homography could be calculated"
+
+	# make sure that enough matches agree with it
+	if inliers < MIN_INLIERS:
+		return f"only {inliers} inliers (minimum required: {MIN_INLIERS})"
+
+	# get the corners of the reference image
+	h, w = reference_shape
+	corners = float32([ [0,0], [0,h-1], [w-1,h-1], [w-1,0] ]).reshape(-1, 1, 2)
+
+	# project the reference corners into the target image (i.e. where the page is in the photo)
+	quad = perspectiveTransform(corners, inv(M))
+
+	# the page should be a convex quadrilateral in the photo
+	if not isContourConvex(quad):
+		return "the page is not a convex shape in the photograph"
+
+	# ...that is not mirrored (the corners should go round the same way in both images)
+	if (contourArea(corners, oriented=True) > 0) != (contourArea(quad, oriented=True) > 0):
+		return "the page is mirrored in the photograph"
+
+	# ...and that is not tiny (less than 1% of the photograph)
+	if contourArea(quad) < 0.01 * target_shape[0] * target_shape[1]:
+		return "the page is implausibly small in the photograph"
+
+	# all OK
+	return None
+
+
+def homography_from_markers(reference_img, target_img, magsac, min_markers, demo):
+	"""
+	* Calculate the homography between the photograph and the reference using the ArUco
+	*  marker border. Each marker has a unique id, so we know exactly which corners match
+	* @author jonnyhuck
+	* @return the homography, or None if it cannot be calculated (e.g. an older layout without markers)
+	"""
+
+	# find the markers in the reference image
+	vprint("Detecting ArUco markers...")
+	ref_markers = detect_markers(reference_img)
+
+	# if there are none, this is an older layout so use SIFT instead
+	if not ref_markers:
+		vprint("No markers in reference image (older layout), using SIFT instead")
+		return None
+
+	# find the markers in the target image, and get the ids that appear in both
+	tgt_markers = detect_markers(target_img)
+	shared = sorted(set(ref_markers) & set(tgt_markers))
+	vprint(f"Found {len(tgt_markers)} markers in target, {len(shared)} of which match the {len(ref_markers)} in the reference")
+
+	# plot detected markers for demo
+	if demo:
+		marker_img = cvtColor(target_img, COLOR_GRAY2BGR)
+		if shared:
+			aruco.drawDetectedMarkers(marker_img, [ tgt_markers[i].reshape(1, 4, 2) for i in shared ], array(shared).reshape(-1, 1))
+		imwrite('demo/2.markers.jpg', marker_img)
+
+	# if there are not enough markers, use SIFT instead
+	if len(shared) < min_markers:
+		vprint(f"Not enough markers (minimum required: {min_markers}), using SIFT instead")
+		return None
+
+	# get the corners of each matching marker as numpy arrays (4 corners per marker, in the same order)
+	src_pts = concatenate([ tgt_markers[i] for i in shared ]).astype(float32).reshape(-1, 1, 2)
+	dst_pts = concatenate([ ref_markers[i] for i in shared ]).astype(float32).reshape(-1, 1, 2)
+
+	# do some homography (the corners are accurate, so a tight reprojection threshold is OK)
+	M, inliers = estimate_homography(src_pts, dst_pts, magsac, 3)
+	vprint(f"Marker homography: {inliers}/{len(src_pts)} corners are inliers")
+
+	# check the result and use SIFT instead if it is no good
+	problem = check_homography(M, inliers, reference_img.shape, target_img.shape)
+	if problem:
+		vprint(f"Marker homography rejected ({problem}), using SIFT instead")
+		return None
+	return M
+
+
+def homography_from_sift(reference_img, target_img, lowe_distance, homo_matches, magsac, downscale, demo,
+	max_features=10000):
+	"""
+	* Calculate the homography between the photograph and the reference using SIFT features
+	*  from the map itself (for older layouts without markers, or if the markers are not found)
+	* @author jonnyhuck
+	* @return the homography (for the full resolution target image)
+	"""
+
+	# downscale the photograph to roughly the size of the reference, as fine detail in a high resolution
+	#  photo (paper grain, printer dots, noise, pen strokes) has no equivalent in the reference
+	scale = 1.0
+	if downscale > 0:
+		scale = min(1.0, downscale * max(reference_img.shape) / max(target_img.shape))
+	match_target = resize(target_img, None, fx=scale, fy=scale, interpolation=INTER_AREA) if scale < 1 else target_img
+	vprint(f"Matching at {scale:.2f}x photo resolution ({match_target.shape[1]} x {match_target.shape[0]} pixels)")
 
 	# find the keypoints and descriptors with SIFT
 	vprint("Detecting keypoints with SIFT...")
-	sift = SIFT_create()
-	kp1, des1 = sift.detectAndCompute(target_img, None)
+	#  (keeping only the strongest max_features keypoints, as matching very large numbers is extremely slow)
+	sift = SIFT_create(nfeatures=max_features)
+	kp1, des1 = sift.detectAndCompute(match_target, None)
 	kp2, des2 = sift.detectAndCompute(reference_img, None)
 	vprint(f"Found {len(kp1)} keypoints in target, {len(kp2)} in reference")
+
+	# make sure that there is something to match
+	if des1 is None or des2 is None or len(kp2) < 2:
+		raise Exception('NOT ENOUGH MATCHES', "No features found in one of the images")
 
 	# do some FLANN matching
 	flann = FlannBasedMatcher(dict(algorithm=0, trees=10), dict(checks=50))
@@ -70,7 +204,14 @@ def extract_map(reference_img, target_img, lowe_distance, homo_matches, demo):
 	# store all the good matches as per Lowe's ratio test.
 	good = []
 	matchesMask = [[0,0] for _ in range(len(matches))]
-	for i,(m,n) in enumerate(matches):
+	for i, pair in enumerate(matches):
+
+		# skip any keypoints that did not get two matches
+		if len(pair) < 2:
+			continue
+
+		# keep the match if it is much better than the second best
+		m, n = pair
 		if m.distance < lowe_distance * n.distance:
 			good.append(m)
 			matchesMask[i]=[1,0]
@@ -79,7 +220,7 @@ def extract_map(reference_img, target_img, lowe_distance, homo_matches, demo):
 
 	# plot matches image for demo
 	if demo:
-		match_img = drawMatchesKnn(target_img, kp1, reference_img, kp2, matches, None, matchesMask=matchesMask)
+		match_img = drawMatchesKnn(match_target, kp1, reference_img, kp2, matches, None, matchesMask=matchesMask)
 		imwrite('demo/2.matches.jpg', match_img)
 
 	# if there are not enough "good matches", report and exit
@@ -91,35 +232,106 @@ def extract_map(reference_img, target_img, lowe_distance, homo_matches, demo):
 	dst_pts = float32([ kp2[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
 
 	# do some homography
-	vprint("Computing homography and warping image...")
-	M, mask = findHomography(src_pts, dst_pts, RANSAC, 10)
+	vprint("Computing homography...")
+	M, inliers = estimate_homography(src_pts, dst_pts, magsac, 10)
+	vprint(f"SIFT homography: {inliers}/{len(good)} matches are inliers")
+
+	# convert the homography from the downscaled photo to the full resolution one
+	if M is not None:
+		M = M @ diag([scale, scale, 1.0])
+
+	# check the result and report if it is no good
+	problem = check_homography(M, inliers, reference_img.shape, target_img.shape)
+	if problem:
+		raise Exception('NO HOMOGRAPHY', f"Failed to calculate Homography: {problem}")
+	return M
+
+
+def read_target_qr(target_img, M, qr_rect, scale=4, pad=12):
+	"""
+	* Read the QR code from the photograph, using the homography to rectify (and upscale) just the
+	*  area around the QR code first, as it is usually too small / distorted to read in the raw photo
+	* @author jonnyhuck
+	* @return the uid stored in the QR code, or None if it cannot be read
+	"""
+
+	# get the location of the QR code in the reference image
+	left, top, width, height = qr_rect
+
+	# make a homography that goes from the photo to an upscaled crop around the QR code (with padding for the quiet zone)
+	T = array([[scale, 0, -(left - pad) * scale], [0, scale, -(top - pad) * scale], [0, 0, 1]])
+	crop = warpPerspective(target_img, T @ M, ((width + 2 * pad) * scale, (height + 2 * pad) * scale))
+
+	# read the QR code and return the uid (the last value)
+	result = decode(crop, symbols=[ZBarSymbol.QRCODE])
+	return result[0].data.decode("utf-8").split(",")[-1] if result else None
+
+
+def find_map_homography(reference_img, target_img, lowe_distance, homo_matches, demo, magsac=False,
+	downscale=1.5, min_markers=4, max_features=10000):
+	"""
+	* Identify one image inside another
+	* @author jonnyhuck
+	* @return the homography that transforms the target image onto the reference image
+	"""
+
+	# first try to locate the map using the ArUco markers
+	M = homography_from_markers(reference_img, target_img, magsac, min_markers, demo)
+
+	# otherwise, fall back to SIFT
 	if M is None:
-		raise Exception('NO HOMOGRAPHY', "Failed to calculate Homography")
+		M = homography_from_sift(reference_img, target_img, lowe_distance, homo_matches, magsac, downscale, demo,
+			max_features=max_features)
+	return M
 
-	# get corner coords
-	h, w = target_img.shape
-	pts = float32([ [0,0], [0,h-1], [w-1,h-1], [w-1,0] ]).reshape(-1, 1, 2)
 
-	# calculate the transormation required to align them
-	dst = perspectiveTransform(pts, M)
+def extract_map(reference_img, target_img, lowe_distance, homo_matches, demo, **kwargs):
+	"""
+	* Identify one image inside another, extract and perspective transform
+	* @author jonnyhuck
+	* @return a numpy array representing the extracted and rectified map
+	"""
 
-	# Apply the calculated transformation as a perspective transformation
+	# get the homography
+	M = find_map_homography(reference_img, target_img, lowe_distance, homo_matches, demo, **kwargs)
+
+	# apply the calculated transformation as a perspective transformation
 	rows, cols = reference_img.shape
 	return warpPerspective(target_img, M, (cols, rows))
 
 
-def processImage(referenceImg, participantMap, lowe_distance,
-	homo_matches, geodata, thresh, kernel, demo):
+def processImage(referenceImg, participantMap, lowe_distance, homo_matches, geodata, thresh, kernel, demo,
+	magsac=False, downscale=1.5, max_features=10000, qr_rect=None):
 	"""
 	* The image processing steps for extracting the markup data from the image
 	* @author jonnyhuck
 	* @return a binary numpy array of (255) markup and (0) background
 	"""
 
+	# locate the map in the target image
+	M = find_map_homography(referenceImg, participantMap, lowe_distance, homo_matches, demo,
+		magsac=magsac, downscale=downscale, max_features=max_features)
+
+	# verify that the photo matches the reference by reading the (rectified) QR code in the photo
+	if qr_rect is not None:
+		target_uid = read_target_qr(participantMap, M, qr_rect)
+		if target_uid is None:
+			vprint("Could not read the QR code in the photograph, so cannot verify that it matches the reference")
+		elif target_uid != geodata[-1]:
+			print(f"WARNING: the QR code in the photograph ({target_uid}) does not match the reference ({geodata[-1]}) - " \
+				"check that you are using the correct reference image!")
+		else:
+			vprint(f"QR code in photograph matches reference ({target_uid})")
+
 	# extract the map from the target image
-	homoMap = extract_map(referenceImg, participantMap, lowe_distance, homo_matches, demo)
+	vprint("Warping image...")
+	rows, cols = referenceImg.shape
+	homoMap = warpPerspective(participantMap, M, (cols, rows))
 	if demo:
 		imwrite("./demo/3.warped.png", homoMap)
+
+		# overlay the warped photo (magenta) on the reference (green) - misalignment shows as coloured fringes
+		imwrite("./demo/3.overlay.png", dstack((homoMap, referenceImg, homoMap)))
 
 	# crop homogrified result
 	cropped_map = homoMap[int(geodata[6]):int(geodata[8]), int(geodata[5]):int(geodata[7])]
@@ -274,7 +486,7 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 				for g in geoms:
 				
 					# extract the interior ring and convert to polygon
-					for int_geom in geom.interiors:
+					for int_geom in g.interiors:
 						polygon = Polygon(int_geom.coords)
 						out.write({'geometry': mapping(polygon),
 							'properties': {'area': geom.area, 'uid': uid}})
@@ -300,19 +512,26 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 
 def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=100,
 	kernel=3, homo_matches=12, frame=0, min_area=1000, min_ratio=0.2, buffer=10, uid=None, convex_hull=False,
-	centroid=False, representative_point=False, exterior=False, interior=False, demo=False, verbose=False):
+	centroid=False, representative_point=False, exterior=False, interior=False, demo=False, verbose=False,
+	magsac=False, downscale=1.5, max_features=10000):
 	"""
 	* Main function: this runs the map extraction, resulting in a file being written
 	*  to the desired location
 	* @author jonnyhuck
+	*
+	* Registration options:
+	* 	magsac: use MAGSAC rather than RANSAC to calculate the homography
+	* 	downscale: shrink the photo to this multiple of the reference size for SIFT matching (0 to disable)
+	* 	max_features: the maximum number of SIFT keypoints to use in each image (0 for no limit)
 	"""
 
 	# Set module-level verbose flag
 	global _VERBOSE
 	_VERBOSE = verbose
-	
+
 	vprint(f"\nExtracting markup: {target} -> {output}")
 	vprint(f"Parameters: threshold={thresh}, kernel={kernel}, lowe_distance={lowe_distance}, min_matches={homo_matches}")
+	vprint(f"Registration: method={'MAGSAC' if magsac else 'RANSAC'}, downscale={downscale}, max_features={max_features}")
 
 	# make sure there are not any conflicting output options specified
 	if sum([convex_hull, centroid, representative_point, exterior, interior]) > 1:
@@ -337,7 +556,7 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 			makedirs('./demo')
 
 		# make sure demo folder is empty
-		for f in glob("./demo/*.png"):
+		for f in glob("./demo/*.png") + glob("./demo/*.jpg"):
 			remove(f)
 
 		# print initial demo information
@@ -346,7 +565,10 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 		print(f"output: {output}")
 
 	# read in reference image and greyscale
-	reference_img = cvtColor(imread(reference), COLOR_BGR2GRAY)
+	reference_np = imread(reference)
+	if reference_np is None:
+		raise Exception('UNREADABLE IMAGE', f"Cannot read reference image {reference}")
+	reference_img = cvtColor(reference_np, COLOR_BGR2GRAY)
 	if demo:
 		imwrite("./demo/1.reference.png", reference_img)
 
@@ -360,21 +582,24 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 		pillow_heif.register_heif_opener()
 		pil_img = Image.open(target)
 
-		# convert to NumPy array
-		ref_np = array(pil_img)
+		# convert to NumPy array and greyscale (Pillow gives RGB rather than OpenCV's BGR)
+		participant_map = cvtColor(array(pil_img.convert('RGB')), COLOR_RGB2GRAY)
 	else:
 
 		# read into numpy array
 		ref_np = imread(target)
+		if ref_np is None:
+			raise Exception('UNREADABLE IMAGE', f"Cannot read target image {target}")
 
-	# read in participant map and greyscale
-	participant_map = cvtColor(ref_np, COLOR_BGR2GRAY)
+		# greyscale
+		participant_map = cvtColor(ref_np, COLOR_BGR2GRAY)
+
+	# add a frame around the participant map if requested
 	if frame > 0:
 		vprint(f"Adding frame (multiplier: {frame})")
-		# make a white background
 		h, w = participant_map.shape
-		
-		# make a white background that is 2 * frame larger then the image in each dimension
+
+		# make a grey background that is 2 * frame larger then the image in each dimension
 		frame_multiplier = 1 + frame * 2
 		frame_background = zeros([int(h * frame_multiplier), int(w * frame_multiplier)], dtype=uint8)
 		frame_background.fill(127)
@@ -389,28 +614,19 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 	if demo:
 		imwrite("./demo/2.target.png", participant_map)
 
-	# get metadata from QR code
+	# get metadata from QR code (and its location, which is used to find & read the QR code in the photo)
 	try:
-		geodata = decode(reference_img, symbols=[ZBarSymbol.QRCODE])[0].data.decode("utf-8").split(",")
+		qr = decode(reference_img, symbols=[ZBarSymbol.QRCODE])[0]
+		geodata = qr.data.decode("utf-8").split(",")
 		vprint(f"Map CRS: EPSG:{geodata[4]}, UUID: {geodata[-1]}")
 		if demo and not _VERBOSE:
 			print(f"Map CRS: EPSG:{geodata[4]}, UUID: {geodata[-1]}")
 	except IndexError:
 		raise Exception('NOT A PAPER2GIS MAP', "Reference image is not a Paper2GIS map")
 
-	# verify that the target image matches the reference
-	try:
-		tmp_geodata = decode(participant_map, symbols=[ZBarSymbol.QRCODE])[0].data.decode("utf-8").split(",")
-		# TODO: MAKE THIS CHECK OPTIONAL??
-		# if geodata[-1] != tmp_geodata[-1]:
-		# 	raise Exception('WRONG REFERENCE', f"Target image does not match reference image ({geodata[-1]} | {tmp_geodata[-1]})")
-	except IndexError:
-		# print("WARNING - can't read QR code in target image")
-		pass	# never seems to manage to read it!
-
-	# run the image processing to get binary result array
-	opened_map = processImage(reference_img, participant_map, lowe_distance,
-		homo_matches, geodata, thresh, kernel, demo)
+	# run the image processing to get binary result array (this also checks the QR code in the photo matches)
+	opened_map = processImage(reference_img, participant_map, lowe_distance, homo_matches, geodata, thresh, kernel, demo,
+		magsac=magsac, downscale=downscale, max_features=max_features, qr_rect=qr.rect)
 
 	# output to a raster if the output file extension is .tif (no cleaning)
 	if output[-4:] == ".tif":

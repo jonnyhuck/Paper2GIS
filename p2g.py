@@ -42,7 +42,7 @@ with catch_warnings():
     g2p_parser.add_argument('-r','--resolution', type=int, help='Resolution of the input map image (dpi)', required=False, default='96')
 
     # path to the map input (this or tiles=True is required)
-    g2p_parser.add_argument('-i','--input', help='the input map image (file path) - this is ignored if --tiles=True', required=False, default='map.png')
+    g2p_parser.add_argument('-i','--input', help='the input map image (file path) - this is ignored if --tiles is used', required=False, default='map.png')
 
     # path to the output file
     g2p_parser.add_argument('-o','--output', help='the output data file (file path)', required=False, default='out.png')
@@ -51,10 +51,9 @@ with catch_warnings():
     g2p_parser.add_argument('-n','--description', help='Descriptive text that will be printed on the map', required=False, default='')
 
     # create a map image (this or input file path is required)
-    g2p_parser.add_argument('-t','--tiles', action='store_true', help='create a OSM map (ignores --input)', required=False, default=False)
-    g2p_parser.add_argument('-s','--satellite', action='store_true', help='use ESRI satellite imagery instead of OSM map', required=False, default=False)
+    g2p_parser.add_argument('-t','--tiles', nargs='?', const='osm', choices=['osm', 'esri', 'google'], help="create a map from tiles: 'osm' (OpenStreetMap, the default if no value is given), 'esri' (ESRI satellite imagery) or 'google' (Google satellite imagery) - ignores --input", required=False, default=None)
     g2p_parser.add_argument('-f','--fade', type=int, help='intensity of the white filter over the tiles (0-255)', required=False, default=85)
-    g2p_parser.add_argument('-z','--zoom', type=int, help='requested zoom level of OSM tiles (necessary if using tiles)', required=False, default=0)
+    g2p_parser.add_argument('-z','--zoom', type=int, help='requested zoom level of the tiles (necessary if using tiles)', required=False, default=0)
     g2p_parser.add_argument('-hs','--hillshade', action='store_true', help='add hillshade to generated OSM map', required=False, default=False)
     g2p_parser.add_argument('-sa','--hillshadealpha', type=float, help='the alpha value for the hillshade layer', required=False, default=0.25)
     
@@ -63,6 +62,10 @@ with catch_warnings():
     g2p_parser.add_argument('-bw','--boundarywidth', type=int, help='the width (in pixels) of the boundary line', required=False, default=8)
     g2p_parser.add_argument('-bc','--boundarycolour', help='the colour of the boundary line', required=False, default='blue')
     g2p_parser.add_argument('-ba','--boundaryalpha', type=float, help='the alpha (opacity) of the boundary line', required=False, default=0.1)
+
+    # border style
+    g2p_parser.add_argument('-ls','--landscape', action='store_true', help='make an A3 landscape layout (default is A3 portrait)', required=False, default=False)
+    g2p_parser.add_argument('-nm','--no_markers', action='store_true', help='use the old random noise border instead of ArUco markers (gives a slightly larger map)', required=False, default=False)
 
     # verbose mode
     g2p_parser.add_argument('-v','--verbose', action='store_true', help='enable verbose output', required=False, default=False)
@@ -78,7 +81,12 @@ with catch_warnings():
     p2g_parser.add_argument('-k','--kernel', type=int, help='the size of the kernel used for opening the image', required = False, default=3)
     p2g_parser.add_argument('-i','--threshold', type=int, help='the threshold the target image', required = False, default=100)
     p2g_parser.add_argument('-m','--homo_matches', type=int, help='the number of matches required for homography', required = False, default=12)
-    
+
+    # for locating the map in the photograph (registration)
+    p2g_parser.add_argument('-g','--magsac', action='store_true', help='use MAGSAC rather than RANSAC to calculate the homography (more tolerant of bad matches)', required = False, default = False)
+    p2g_parser.add_argument('-ds','--downscale', type=float, help='shrink the photo to this multiple of the reference size for SIFT matching (0 to disable)', required = False, default = 1.5)
+    p2g_parser.add_argument('-mf','--max_features', type=int, help='the maximum number of SIFT keypoints to use in each image (0 for no limit)', required = False, default = 10000)
+
     # add user id to the output shapefile
     p2g_parser.add_argument('-u','--uid', type=int, help='user ID number to add the the output shapefile', required = False)
 
@@ -98,7 +106,7 @@ with catch_warnings():
     p2g_parser.add_argument('-ci','--interior', action='store_true', help='extract polygons from boundaries by extracting the inner rings', required = False, default = False)
 
     # runtime settings
-    p2g_parser.add_argument('-d','--demo', action='store_true', help='the output data file', required = False, default = False)
+    p2g_parser.add_argument('-d','--demo', action='store_true', help='write the intermediate images to ./demo', required = False, default = False)
     
     # verbose mode
     p2g_parser.add_argument('-v','--verbose', action='store_true', help='enable verbose output', required=False, default=False)
@@ -112,34 +120,38 @@ with catch_warnings():
     # generate the layout and save to the specified file
     if args.command == "generate":
         from paper2gis.gis2paper import run_generate
-        run_generate(args.bl_x, args.bl_y, args.tr_x, args.tr_y, args.epsg, 
-            args.resolution, args.input, args.output, args.tiles, args.satellite,
-            args.fade, args.zoom, args.hillshade, args.hillshadealpha, 
-            args.boundaryfile, args.boundarywidth, args.boundarycolour, args.boundaryalpha, 
-            args.verbose)
+        run_generate(args.bl_x, args.bl_y, args.tr_x, args.tr_y, epsg=args.epsg,
+            dpi=args.resolution, in_path=args.input, out_path=args.output, descriptive_text=args.description,
+            tiles=args.tiles, fade=args.fade, zoom=args.zoom,
+            hillshade=args.hillshade, hillshade_alpha=args.hillshadealpha,
+            boundary_file=args.boundaryfile, boundary_width=args.boundarywidth,
+            boundary_colour=args.boundarycolour, boundary_alpha=args.boundaryalpha,
+            verbose=args.verbose, markers=not args.no_markers, landscape=args.landscape)
 
     # extract markup from a photograph of a map and store the result in the specified file
     elif args.command == "extract":
         from paper2gis.paper2gis import run_extract
-        run_extract(args.reference, args.target, args.output, args.lowe_distance,
-            args.threshold, args.kernel, args.homo_matches, args.frame, args.min_area,
-            args.min_ratio, args.buffer, args.uid, args.convex_hull, 
-            args.centroid, args.representative_point, 
-            args.exterior, args.interior, args.demo, args.verbose)
-    
+        run_extract(args.reference, args.target, args.output, lowe_distance=args.lowe_distance,
+            thresh=args.threshold, kernel=args.kernel, homo_matches=args.homo_matches, frame=args.frame,
+            min_area=args.min_area, min_ratio=args.min_ratio, buffer=args.buffer, uid=args.uid,
+            convex_hull=args.convex_hull, centroid=args.centroid, representative_point=args.representative_point,
+            exterior=args.exterior, interior=args.interior, demo=args.demo, verbose=args.verbose,
+            magsac=args.magsac, downscale=args.downscale, max_features=args.max_features)
+
     # run on test dataset, compare result to baseline and report
     elif args.command == "test":
         from PIL import Image, ImageChops
         from numpy import array, count_nonzero
         from paper2gis.paper2gis import run_extract
         from paper2gis.gis2paper import run_generate
-        
+
         print("\nRunning test image generation...")
-        run_generate(-393872.67, 7414244.26, -340247.96, 7476887.78, '3857', 96, None, 'test/testgen.png', True, 85, 11, False, None, None, None, None, None)
+        run_generate(-393872.67, 7414244.26, -340247.96, 7476887.78, epsg='3857', dpi=96,
+            out_path='test/reference.png', tiles=True, fade=85, zoom=11)
         diff = array(ImageChops.difference(Image.open('test/reference.png'), Image.open('test/testgen.png')))
-        print(f"Generation works!\nThe result is {count_nonzero(diff) / diff.size * 100:.2f}% different to the reference version (up to 15% is due to the random border).\n")
+        print(f"Generation works!\nThe result is {count_nonzero(diff) / diff.size * 100:.2f}% different to the reference version (up to ~15% is expected).")
 
         print("\nRunning test image extraction...")
         run_extract('test/reference.png', 'test/target.jpg', 'test/test_out.tif')
         diff = array(ImageChops.difference(Image.open('test/out.tif'), Image.open('test/test_out.tif')))
-        print(f"Extraction works!\nThe result is {count_nonzero(diff) / diff.size * 100:.2f}% different to the reference version.\n")
+        print(f"Extraction works!\nThe result is {count_nonzero(diff) / diff.size * 100:.2f}% different to the reference version (0% is expected).\n")

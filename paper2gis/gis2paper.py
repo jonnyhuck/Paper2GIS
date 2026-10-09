@@ -6,6 +6,7 @@
 """
 
 from sys import exit
+from os import path
 from math import ceil
 from uuid import uuid4
 from io import BytesIO
@@ -16,11 +17,15 @@ from PIL.ImageOps import expand
 from fiona.errors import DriverError
 from PIL import Image, ImageDraw, ImageFont
 from qrcode.constants import ERROR_CORRECT_L
-from cartopy.io.img_tiles import GoogleTiles
+from cartopy.io.img_tiles import GoogleTiles, OSM
+from paper2gis.markers import MARKER_PX, MARKER_MODULE_PX, draw_marker, get_dictionary
 
 
 # Module-level verbose flag
 _VERBOSE = False
+
+# resources directory (relative to this file, so that it works from any working directory)
+RESOURCES = path.join(path.dirname(path.abspath(__file__)), '..', 'resources')
 
 def vprint(*args, **kwargs):
 	"""Print only if verbose mode is enabled"""
@@ -51,6 +56,14 @@ class SatelliteESRI(GoogleTiles):
         return url
 
 
+# the available tile sources: name -> (function to get the tiler, attribution text)
+TILE_SOURCES = {
+	'osm': (lambda: OSM(), "Map data Copyright {year} OpenStreetMap Contributors."),
+	'esri': (lambda: SatelliteESRI(), "Imagery Copyright {year} Esri, Maxar, Earthstar Geographics, and the GIS User Community."),
+	'google': (lambda: GoogleTiles(style='satellite'), "Imagery Copyright {year} Google."),
+}
+
+
 def figure_to_image(fig, dpi=None):
 	"""
 	* Convert a pyplot Figure to a PIL Image
@@ -62,7 +75,7 @@ def figure_to_image(fig, dpi=None):
 	return img.convert("RGBA")
 
 
-def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, satellite=False, fade=85, hillshade=False, hillshade_alpha=0.25, 
+def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, source='osm', fade=85, hillshade=False, hillshade_alpha=0.25,
 				boundary_file=None, boundary_width=8, boundary_colour='blue', boundary_alpha=0.1):
 	"""
 	* Return an OSM map as a PIL image
@@ -73,24 +86,22 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, satellite=
 	*     w, h: desired dimensions of the output image (overides the map bounds)
 	*     dpi: resolution of the output image (default 96)
 	*     crs: the crs of the input coordinates (default Web Mercator)
+	*     source: the tiles to use - 'osm' (OpenStreetMap), 'esri' (ESRI satellite) or 'google' (Google satellite)
 	*     fade: (0-255) the intensity of the white filter
 	"""
 	# load additional libraries
 	from PIL.Image import BILINEAR
 	from matplotlib import pyplot as plt
-	from cartopy.io.img_tiles import OSM, GoogleTiles
 
-	vprint(f"Downloading OSM tiles (zoom={zoom}, dimensions={w}x{h})...")
+	vprint(f"Downloading {source.upper()} tiles (zoom={zoom}, dimensions={w}x{h})...")
 
 	# user warning if zoom has not been set
 	if zoom == 0:
 		print("\nWARNING: the tile zoom level is set to 0 (default), which will not likely give a satisfactory \
 			map unless you are drawing a map of the wole world.\n")
 
-	# get OSM tile interface
-	# TODO: need to build options into the interface...
-	# tiler = SatelliteESRI() if satellite else OSM()
-	tiler = GoogleTiles(style='satellite') if satellite else OSM()
+	# get the tile interface for the requested source
+	tiler = TILE_SOURCES[source][0]()
 
 	# if no CRS is specified, assume Web Mercator
 	if crs is None:
@@ -165,7 +176,7 @@ def get_osm_map(bl_x, bl_y, tr_x, tr_y, zoom, w, h, dpi=96, crs=None, satellite=
 	map.paste(filter, (0,0), filter)
 
 	# convert back to RGB and return
-	map.convert('RGB')
+	map = map.convert('RGB')
 	# TODO: This is a bodge where I make the map too big then shrink - shouldn't be necessary
 	map = map.resize((w,h), resample=BILINEAR)
 	return (bl_x, bl_y, tr_x, tr_y), map
@@ -177,14 +188,68 @@ def mm2px(mm, dpi=96):
 	"""
 	return int(ceil(mm * dpi / 25.4))
 
-# TODO: sort the order of the args and defaults so that we can use named variables and call from Python as a lib
-def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, descriptive_text, tiles, satellite, fade, zoom, hillshade, 
-				 hillshade_alpha, boundary_file, boundary_width, boundary_colour, boundary_alpha, verbose=False, name=""):
+
+def add_marker_border(page, x0, y0, x1, y1):
+	"""
+	* Draw a ring of ArUco markers (at regular intervals) onto the page, inside the
+	*  rectangle x0, y0, x1, y1. Each marker has a unique id, so that the extraction
+	*  process knows exactly where each one is on the reference layout
+	* @author jonnyhuck
+	* @return the number of markers drawn
+	"""
+
+	# the desired distance between markers (one marker plus a marker-sized white gap)
+	pitch = MARKER_PX * 2
+
+	def positions(start, end):
+		"""
+		* Get evenly spaced positions from start to end (inclusive), as close to pitch apart as possible
+		"""
+		n = max(int((end - start) // pitch), 1)
+		return [ int(round(start + i * (end - start) / n)) for i in range(n + 1) ]
+
+	# get the positions of the markers along each axis (top left corner of each marker, including corners)
+	xs = positions(x0, x1 - MARKER_PX)
+	ys = positions(y0, y1 - MARKER_PX)
+
+	# list the top left corner of each marker, going clockwise from the top left corner of the ring
+	locations = [ (x, y0) for x in xs ] \
+		+ [ (x1 - MARKER_PX, y) for y in ys[1:] ] \
+		+ [ (x, y1 - MARKER_PX) for x in reversed(xs[:-1]) ] \
+		+ [ (x0, y) for y in reversed(ys[1:-1]) ]
+
+	# make sure that there are enough unique ids in the dictionary
+	n_ids = get_dictionary().bytesList.shape[0]
+	if len(locations) > n_ids:
+		raise ValueError(f"Layout needs {len(locations)} markers but the dictionary only has {n_ids}")
+
+	# draw each marker onto the page (the marker id is its position in the list)
+	for marker_id, (x, y) in enumerate(locations):
+		page.paste(Image.fromarray(draw_marker(marker_id)), (x, y))
+
+	# return the number of markers
+	return len(locations)
+
+
+def run_generate(blX, blY, trX, trY, epsg='3857', dpi=96, in_path=None, out_path='out.png', descriptive_text='',
+				 tiles=False, fade=85, zoom=0, hillshade=False, hillshade_alpha=0.25, boundary_file=None,
+				 boundary_width=8, boundary_colour='blue', boundary_alpha=0.1, verbose=False, name="", markers=True,
+				 landscape=False):
 	"""
 	* Generate a Paper2GIS layout from an existing map, or generate one from tiles
-	* 
+	*
+	* tiles can be 'osm' (OpenStreetMap), 'esri' (ESRI satellite) or 'google' (Google satellite) to draw
+	*  the map from tiles, or False to use the map image at in_path instead. For backward compatibility,
+	*  tiles=True is the same as 'osm'.
+	*
+	* If markers=True (default), the map is surrounded by a ring of ArUco markers, which are used
+	*  by the extraction process to locate the map in the photograph. Otherwise the older random
+	*  noise border is used (and the extraction relies upon features in the map itself).
+	*
+	* If landscape=True, the page is A3 landscape rather than A3 portrait (default).
+	*
 	* TODO: implement resolution options?
-	* TODO: add args for page settings (presets and orientations?), tile zoom level and fade
+	* TODO: add args for page settings (presets?), tile zoom level and fade
 	* ---
 	* Info on QR Args:
 	* 	- The qrcode version parameter is an integer from 1 to 40 that controls the size of the QR Code (the smallest, version 1, is a 21x21 matrix). 
@@ -207,7 +272,15 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, descriptive_t
 	global _VERBOSE
 	_VERBOSE = verbose
 
-	source = f"OSM tiles (zoom={zoom})" if tiles else in_path
+	# work out which tiles to use, if any (tiles=True is kept for backward compatibility)
+	if tiles is True:
+		tiles = 'osm'
+
+	# make sure that the requested tiles exist
+	if tiles and tiles not in TILE_SOURCES:
+		raise ValueError(f"Unknown tile source '{tiles}', please use one of: {', '.join(TILE_SOURCES)}")
+
+	source = f"{tiles.upper()} tiles (zoom={zoom})" if tiles else in_path
 	vprint(f"\nGenerating Paper2GIS layout: {source} -> {out_path}")
 	vprint(f"Parameters: EPSG:{epsg}, bounds=[{blX}, {blY}, {trX}, {trY}]")
 
@@ -223,12 +296,9 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, descriptive_t
 	uid = uuid4().hex[:8]
 	vprint(f"Generated UUID: {uid}")
 
-	# page dimensions in mm
-	w_mm = 297
-	h_mm = 420
-
-	# the gap between the map and the qr code etc
-	map_buffer = mm2px(6)
+	# page dimensions in mm (A3, swapped for landscape)
+	w_mm, h_mm = (420, 297) if landscape else (297, 420)
+	vprint(f"Page: A3 {'landscape' if landscape else 'portrait'}")
 
 	#  page dimensions in px
 	page_w = mm2px(w_mm)
@@ -240,13 +310,30 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, descriptive_t
 	# qr code size
 	qr_size = mm2px(30, dpi)
 
-	# the height of the map
-	map_height = 1436
+	# the width of the black and white frame around the map (4px black + 2px white)
+	map_frame = 6
 
-	# MAP DIMENSIONS 1084 x 1436 @ 96dpi
-	# this is from JS to scale between resolutions
-	# width =   parseInt(3508 / 300 * 96 - mm2px(10, 96));
-	# height =  parseInt(4961 / 300 * 96 - mm2px(40, 96));
+	# the white gap (quiet zone) between the markers and the map / qr code
+	marker_gap = MARKER_MODULE_PX
+
+	# the width of the marker border (zero if not using markers)
+	band = MARKER_PX + marker_gap if markers else 0
+
+	# the top of the qr code (which sits in the bottom right corner of the page)
+	qr_top = page_h - page_buffer - qr_size
+
+	# the outer edges of the marker ring (the qr code etc sits underneath)
+	ring_x0, ring_y0 = page_buffer, page_buffer
+	ring_x1, ring_y1 = page_w - page_buffer, qr_top - marker_gap
+
+	# the outer edges of the map (including its frame), inside the marker ring
+	frame_x0, frame_y0 = ring_x0 + band, ring_y0 + band
+	frame_x1, frame_y1 = ring_x1 - band, ring_y1 - band
+
+	# the dimensions of the map itself (inside the frame)
+	map_w = frame_x1 - frame_x0 - map_frame * 2
+	map_h = frame_y1 - frame_y0 - map_frame * 2
+	vprint(f"Map dimensions: {map_w} x {map_h} pixels ({'with' if markers else 'without'} marker border)")
 
 	# scaling for the noise border
 	divider = 10
@@ -259,9 +346,9 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, descriptive_t
 	page = Image.new('RGB', (page_w, page_h), 'white')
 
 	# get input image or create one from tiles
-	if tiles or satellite:
+	if tiles:
 		# note we might need to overwrite the dimensions here as the map gets adjusted to fit the template
-		c, in_map = get_osm_map(float(blX), float(blY), float(trX), float(trY), zoom, 1084, 1436, satellite=satellite, fade=fade, hillshade=hillshade, 
+		c, in_map = get_osm_map(float(blX), float(blY), float(trX), float(trY), zoom, map_w, map_h, source=tiles, fade=fade, hillshade=hillshade,
 						  hillshade_alpha=hillshade_alpha, boundary_file=boundary_file, boundary_width=boundary_width, 
 						  boundary_colour=boundary_colour, boundary_alpha=boundary_alpha) 
 		blX = str(c[0])
@@ -277,44 +364,60 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, descriptive_t
 			print("ERROR: cannot open input map file, please check file path")
 			exit()
 
+		# make sure that the map fits the space available in the layout
+		if in_map.size != (map_w, map_h):
+			print(f"WARNING: input map is {in_map.size[0]}x{in_map.size[1]} pixels, but the layout requires " \
+				f"{map_w}x{map_h} - it will be resized to fit, which may distort it if the aspect ratio is different.")
+			in_map = in_map.resize((map_w, map_h), resample=Image.BILINEAR)
+
 	# open the map and add black border
-	map = expand(expand(in_map, border=4, fill='black'), border=2, fill='white')
+	map = expand(expand(in_map.convert('RGB'), border=4, fill='black'), border=2, fill='white')
 
-	# generate random noise for border
 	vprint("Compositing layout with border and map...")
-	noise = rand((map_height + page_buffer*2 + 6*2)//divider, page_w//divider, 3) * 255
 
-	# turn random noise into greyscale image
-	noise_im = Image.fromarray(noise.astype('uint8')).resize((noise.shape[1]*divider, noise.shape[0]*divider), Image.NEAREST).convert('L')
-	page.paste(noise_im, (0, 0))
+	# add a ring of ArUco markers around the map
+	if markers:
+		n_markers = add_marker_border(page, ring_x0, ring_y0, ring_x1, ring_y1)
+		vprint(f"Added {n_markers} ArUco markers to the border")
+
+	# otherwise, add the old random noise border
+	else:
+
+		# generate random noise for border (covering the area behind the map, plus the page buffer)
+		noise = rand((frame_y1 + page_buffer)//divider, page_w//divider, 3) * 255
+
+		# turn random noise into greyscale image
+		noise_im = Image.fromarray(noise.astype('uint8')).resize((noise.shape[1]*divider, noise.shape[0]*divider), Image.NEAREST).convert('L')
+		page.paste(noise_im, (0, 0))
 
 	# add the map to the image
-	page.paste(map, (page_buffer, page_buffer))
+	page.paste(map, (frame_x0, frame_y0))
 
 	vprint("Generating QR code with georeferencing metadata...")
-	
-	# add data to qr object, 'make' and export to image
-	qr.add_data(','.join([blX, blY, trX, trY, epsg, str(page_buffer+6), str(page_buffer+6), str(page_buffer+map.size[0]-6), str(page_buffer+map.size[1]-6), uid]))
+
+	# add data to qr object, 'make' and export to image (bounds, crs, pixel coordinates of map in the layout, uid)
+	qr.add_data(','.join([blX, blY, trX, trY, epsg, str(frame_x0 + map_frame), str(frame_y0 + map_frame),
+		str(frame_x0 + map.size[0] - map_frame), str(frame_y0 + map.size[1] - map_frame), uid]))
 	qr.make(fit=True)
 	qrcode_im = qr.make_image()
 
 	# add qr code to the map
-	page.paste(qrcode_im.resize((qr_size, qr_size)), (page_w - page_buffer - qr_size, map_height + map_buffer + page_buffer))
+	page.paste(qrcode_im.resize((qr_size, qr_size)), (page_w - page_buffer - qr_size, qr_top))
 
 	# open the north arrow and add to the page
 	try:
-		north = Image.open('./resources/north.png').resize((qr_size - page_buffer, qr_size - page_buffer))
+		north = Image.open(path.join(RESOURCES, 'North.png')).resize((qr_size - page_buffer, qr_size - page_buffer))
 	except FileNotFoundError:
 		print("ERROR: Cannot find North Arrow file - please check installation")
 		exit()
-	page.paste(north, (page_w - page_buffer - (qr_size*2), map_height + map_buffer + page_buffer // 2 + page_buffer), north)
+	page.paste(north, (page_w - page_buffer - (qr_size*2), qr_top + page_buffer // 2), north)
 
 	# get drawing context for page
 	draw = ImageDraw.Draw(page)
 
 	# prepare a font
 	try:
-		font = ImageFont.truetype('./resources/OpenSans-Regular.ttf', 12)
+		font = ImageFont.truetype(path.join(RESOURCES, 'OpenSans-Regular.ttf'), 12)
 	except OSError:
 		print("ERROR: Cannot find Open Sans font file - please check installation")
 		exit()
@@ -327,14 +430,19 @@ def run_generate(blX, blY, trX, trY, epsg, dpi, in_path, out_path, descriptive_t
 	year = str(datetime.today().year)
 	attribution_text_list = ["Paper2GIS Copyright", year, "Prof. Jonny Huck: https://github.com/jonnyhuck/paper2gis."]
 	if tiles:
-		attribution_text_list += ["\nMap data Copyright", year, "OpenStreetMap Contributors."]
-		if hillshade:
-			attribution_text_list += ["Hillshade data Copyright", year, "ESRI, USGS."]
+		attribution_text_list += ["\n" + TILE_SOURCES[tiles][1].format(year=year)]
+	if tiles and hillshade:
+		attribution_text_list += ["Hillshade data Copyright", year, "ESRI, USGS."]
 	attribution_text = " ".join(attribution_text_list)
-	draw.text((page_buffer, page_h - mm2px(3) - th*2), attribution_text, fill='black', font=font)
 
-	# add uuid and description text
-	draw.text((page_buffer, page_h - mm2px(5) - th*3), f"{uid} | {descriptive_text}", fill='black', font=font)
+	# measure the attribution text (which may be more than one line) and place it so that its bottom
+	#  lines up with the bottom of the qr code (i.e. the page buffer), so it doesn't run off the page
+	attribution_bbox = draw.multiline_textbbox((0, 0), attribution_text, font=font)
+	attribution_y = page_h - page_buffer - attribution_bbox[3]
+	draw.multiline_text((page_buffer, attribution_y), attribution_text, fill='black', font=font)
+
+	# add uuid and description text (one line above the attribution text, with a small gap)
+	draw.text((page_buffer, attribution_y - th * 2), f"{uid} | {descriptive_text}", fill='black', font=font)
 
 	# validate out_path is a png
 	if out_path[-4:] != ".png":

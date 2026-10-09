@@ -29,8 +29,8 @@ The basics of the extraction workflow is illustrated below: you simply generate 
 
 Paper2GIS no longer supports map generation using Mapnik Stylesheets, as the Mapnik [Python Bindings](https://github.com/mapnik/python-mapnik) proved to be increasingly challenging for people to build and appear to have very limited support / development at the moment. Instead, you can now either:
 
-* provide a map image that will be used instead. For now, I would recommend making your map **1084 x 1436 @ 96dpi**, and ensuring that there are no very dark areas (e.g. prominent black labels), which may be misinterpreted as markup. 
-* provide your desired map bounds and Paper2GIS will generate a map for you using OSM map tiles. You control the desired zoom level of the map tiles that it uses, so that you can make sure that the map looks as good as possible. To get an idea, if you go to [OpenStreetMap](https://www.openstreetmap.org/), you can see the zoom level currently visible on the screen by looking at the URL. For example, if the URL is `https://www.openstreetmap.org/#map=18/2.78882/32.29586`, then the zoom level is **18** (the number that immediately follows `#map=`). The range is between `0` (for the whole world on a single tile) and `19` (the finest level of detail).
+* provide a map image that will be used instead. For now, I would recommend making your map **1003 x 1348 @ 96dpi** for a portrait layout or **1468 x 883 @ 96dpi** for a landscape layout (or **1087 x 1432** / **1552 x 967** if using `--no_markers`), and ensuring that there are no very dark areas (e.g. prominent black labels), which may be misinterpreted as markup. 
+* provide your desired map bounds and Paper2GIS will generate a map for you using map tiles (OpenStreetMap, or ESRI / Google satellite imagery). You control the desired zoom level of the map tiles that it uses, so that you can make sure that the map looks as good as possible. To get an idea, if you go to [OpenStreetMap](https://www.openstreetmap.org/), you can see the zoom level currently visible on the screen by looking at the URL. For example, if the URL is `https://www.openstreetmap.org/#map=18/2.78882/32.29586`, then the zoom level is **18** (the number that immediately follows `#map=`). The range is between `0` (for the whole world on a single tile) and `19` (the finest level of detail).
 * If you are using the OSM tiles option, you can add an optional **hillshade layer** courtesy of ESRI. An example of a Paper2GIS map with and without hillshade is given below:
 
 ![Hillshade Example](resources/images/hillshade.png)
@@ -39,11 +39,15 @@ Paper2GIS no longer supports map generation using Mapnik Stylesheets, as the Map
 
   ![Hillshade Example](resources/images/boundary.png)
 
+By default, the map is surrounded by a ring of [ArUco markers](https://docs.opencv.org/4.x/d5/dae/tutorial_aruco_detection.html) (small black and white squares, each with a unique ID). These allow the extraction process to locate the map in the photograph precisely, regardless of what is on the map itself (e.g., satellite imagery that is mostly forest, which has very few distinctive features). This makes the map itself slightly smaller - if you want the old layout (with a random noise border), use `--no_markers`.
+
 It is always good to thoroughly test a map using the extractor before using a Paper2GIS layout 'in the wild', and remember that the `extract` software has loads of settings to help make sure that you get a nice result, so don't panic if you don't get a perfect result first time with the default settings!
 
 ### Notes on Map Extraction
 
 Markup can be extracted as-is (marked areas will become **polygons**), as **convex hulls**, as **centroids** (point representing the geometric centroid, irrespoective of whether or not it is contained within the original polygon), as **representative points** (point that is definitely inside the original polygon) or as **polygons from boundaries** (where only the boundary is marked on the map, but a filled polygon is extracted using either the exterior interior ring(s)). All extraction can be in the form of either a ShapeFile (`.shp`) or GeoTiff (`.tif`).
+
+To locate the map in the photograph, the extractor first looks for the ArUco markers around the map. If the layout does not have them (i.e., it was made with an older version of Paper2GIS or with `--no_markers`), or not enough of them can be found, it falls back to matching features (SIFT) in the map itself. There are several options to tune this fallback (`--magsac`, `--downscale`, `--max_features`), see below. Once the map is located, the extractor reads the QR code in the photograph and warns you if it does not match the reference image (i.e., you are probably using the wrong reference image).
 
 ## Usage
 
@@ -82,7 +86,7 @@ Before running any commands, you must activate the `paper2gis` environment:
 conda activate paper2gis
 ```
 
-Example call with a pre-existing map (`1084 x 1436px @ 96dpi`):
+Example call with a pre-existing map (`1003 x 1348px @ 96dpi`):
 
 ```
 python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585
@@ -94,10 +98,17 @@ Example call with a map drawn using OSM tiles:
 python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585 -o test2.png -t -z 10
 ```
 
-or with ESRI satellite tiles
+or with ESRI or Google satellite imagery tiles
 
 ```
-python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585 -o test2.png -s -z 10
+python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585 -o test2.png -t esri -z 10
+python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585 -o test2.png -t google -z 10
+```
+
+Layouts are A3 portrait by default. For an A3 landscape layout, add the `-ls` or `--landscape` flag:
+
+```
+python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934.585 -o test2.png -t -z 10 -ls
 ```
 
 To enable verbose output showing detailed progress information, add the `-v` or `--verbose` flag:
@@ -109,8 +120,9 @@ python p2g.py generate -a -2462672.600 -b 9330748.585 -c -2393838.600 -d 9421934
 Full details:
 
 ```
-usage: Paper2GIS generate [-h] -a BL_X -b BL_Y -c TR_X -d TR_Y [-e EPSG] [-r RESOLUTION] [-i INPUT] [-o OUTPUT] [-t] [-s] [-f FADE] [-z ZOOM] [-hs]
-                          [-sa HILLSHADEALPHA] [-bf BOUNDARYFILE] [-bw BOUNDARYWIDTH] [-bc BOUNDARYCOLOUR] [-ba BOUNDARYALPHA] [-v]
+usage: Paper2GIS generate [-h] -a BL_X -b BL_Y -c TR_X -d TR_Y [-e EPSG] [-r RESOLUTION] [-i INPUT] [-o OUTPUT] [-n DESCRIPTION]
+                          [-t [{osm,esri,google}]] [-f FADE] [-z ZOOM] [-hs] [-sa HILLSHADEALPHA] [-bf BOUNDARYFILE] [-bw BOUNDARYWIDTH]
+                          [-bc BOUNDARYCOLOUR] [-ba BOUNDARYALPHA] [-ls] [-nm] [-v]
 
 options:
   -h, --help            show this help message and exit
@@ -122,13 +134,16 @@ options:
   -r RESOLUTION, --resolution RESOLUTION
                         Resolution of the input map image (dpi)
   -i INPUT, --input INPUT
-                        the input map image (file path) - this is ignored if --tiles=True
+                        the input map image (file path) - this is ignored if --tiles is used
   -o OUTPUT, --output OUTPUT
                         the output data file (file path)
-  -t, --tiles           create a OSM map (ignores --input)
-  -s, --satellite       use ESRI satellite imagery instead of OSM map
+  -n DESCRIPTION, --description DESCRIPTION
+                        Descriptive text that will be printed on the map
+  -t [{osm,esri,google}], --tiles [{osm,esri,google}]
+                        create a map from tiles: 'osm' (OpenStreetMap, the default if no value is given), 'esri' (ESRI satellite imagery) or
+                        'google' (Google satellite imagery) - ignores --input
   -f FADE, --fade FADE  intensity of the white filter over the tiles (0-255)
-  -z ZOOM, --zoom ZOOM  requested zoom level of OSM tiles (necessary if using tiles)
+  -z ZOOM, --zoom ZOOM  requested zoom level of the tiles (necessary if using tiles)
   -hs, --hillshade      add hillshade to generated OSM map
   -sa HILLSHADEALPHA, --hillshadealpha HILLSHADEALPHA
                         the alpha value for the hillshade layer
@@ -140,6 +155,8 @@ options:
                         the colour of the boundary line
   -ba BOUNDARYALPHA, --boundaryalpha BOUNDARYALPHA
                         the alpha (opacity) of the boundary line
+  -ls, --landscape      make an A3 landscape layout (default is A3 portrait)
+  -nm, --no_markers     use the old random noise border instead of ArUco markers (gives a slightly larger map)
   -v, --verbose         enable verbose output
 ```
 
@@ -166,20 +183,9 @@ python p2g.py extract --reference map.png --target in.jpg -o out.shp --threshold
 Full details:
 
 ```
-usage: Paper2GIS [-h] {generate,extract,test} ...
-
-positional arguments:
-  {generate,extract,test}
-                        either: 'generate' to make a Paper2GIS layout; 'extract' to retrieve markup from a photograph
-                        of a used Paper2GIS layout; or 'test' to test that a new installation is functioning
-
-options:
-  -h, --help            show this help message and exit
-(paper2gis) jonnyhuck@MacBookPro _github % python p2g.py extract -h
-usage: Paper2GIS extract [-h] -r REFERENCE -t TARGET [-o OUTPUT] [-l LOWE_DISTANCE] [-k KERNEL] [-i THRESHOLD]
-                         [-m HOMO_MATCHES] [-u UID] [-f FRAME] [-a MIN_AREA] [-x MIN_RATIO] [-b BUFFER]
-                         [-cc {True,False}] [-cx {True,False}] [-cr {True,False}] [-ce {True,False}] [-ci {True,False}]
-                         [-d {True,False}] [-v]
+usage: Paper2GIS extract [-h] -r REFERENCE -t TARGET [-o OUTPUT] [-l LOWE_DISTANCE] [-k KERNEL] [-i THRESHOLD] [-m HOMO_MATCHES] [-g]
+                         [-ds DOWNSCALE] [-mf MAX_FEATURES] [-u UID] [-f FRAME] [-a MIN_AREA] [-x MIN_RATIO] [-b BUFFER] [-cc] [-cx]
+                         [-cr] [-ce] [-ci] [-d] [-v]
 
 options:
   -h, --help            show this help message and exit
@@ -197,6 +203,11 @@ options:
                         the threshold the target image
   -m HOMO_MATCHES, --homo_matches HOMO_MATCHES
                         the number of matches required for homography
+  -g, --magsac          use MAGSAC rather than RANSAC to calculate the homography (more tolerant of bad matches)
+  -ds DOWNSCALE, --downscale DOWNSCALE
+                        shrink the photo to this multiple of the reference size for SIFT matching (0 to disable)
+  -mf MAX_FEATURES, --max_features MAX_FEATURES
+                        the maximum number of SIFT keypoints to use in each image (0 for no limit)
   -u UID, --uid UID     user ID number to add the the output shapefile
   -f FRAME, --frame FRAME
                         a frame to add round the image if the map is too close to the edge
@@ -206,18 +217,13 @@ options:
                         the ratio (long/short) below which features will be rejected
   -b BUFFER, --buffer BUFFER
                         buffer around the edge used for data cleaning
-  -cc {True,False}, --convex_hull {True,False}
-                        store convex hulls of extracted shapes?
-  -cx {True,False}, --centroid {True,False}
-                        store centroids of extracted shapes?
-  -cr {True,False}, --representative_point {True,False}
+  -cc, --convex_hull    store convex hulls of extracted shapes?
+  -cx, --centroid       store centroids of extracted shapes?
+  -cr, --representative_point
                         store representative points of extracted shapes?
-  -ce {True,False}, --exterior {True,False}
-                        extract polygons from boundaries by extracting the outer ring
-  -ci {True,False}, --interior {True,False}
-                        extract polygons from boundaries by extracting the inner rings
-  -d {True,False}, --demo {True,False}
-                        the output data file
+  -ce, --exterior       extract polygons from boundaries by extracting the outer ring
+  -ci, --interior       extract polygons from boundaries by extracting the inner rings
+  -d, --demo            write the intermediate images to ./demo
   -v, --verbose         enable verbose output
 ```
 
@@ -443,7 +449,7 @@ echo "done."
 
 I am planning to add the following features to Paper2GIS:
 
-* Implement better support for layouts of different sizes and resolutions, including landscape layouts
+* Implement better support for layouts of different sizes and resolutions
 * Implement batch processing for extraction
 * Improved output cleaning for GeoTiff outputs (so that it is the same as for the Shapefile outputs)
 * Automated version of the frame function where low number of matches are detected
