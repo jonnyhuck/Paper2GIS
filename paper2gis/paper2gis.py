@@ -43,7 +43,7 @@ from paper2gis.markers import detect_markers
 from numpy import float32, uint8, ones, zeros, array, concatenate, diag, dstack
 from shapely.geometry import shape, mapping, LineString, Polygon
 from cv2 import RANSAC, USAC_MAGSAC, COLOR_BGR2GRAY, COLOR_RGB2GRAY, COLOR_GRAY2BGR, MORPH_OPEN, THRESH_BINARY_INV, \
-	INTER_AREA
+	INTER_AREA, IMREAD_COLOR, IMREAD_IGNORE_ORIENTATION
 from cv2 import findHomography, perspectiveTransform, warpPerspective, morphologyEx, \
 	FlannBasedMatcher, threshold, imwrite, imread, cvtColor, medianBlur, SIFT_create, drawMatchesKnn, \
 	resize, isContourConvex, contourArea, aruco
@@ -287,14 +287,20 @@ def extract_map(reference_img, target_img, lowe_distance, homo_matches, demo, **
 
 
 def processImage(referenceImg, participantMap, lowe_distance, homo_matches, geodata, thresh, kernel, demo,
-	magsac=False, downscale=1.5, max_features=10000, qr_rect=None, ignore_qr=False):
+	magsac=False, downscale=1.5, max_features=10000, qr_rect=None, ignore_qr=False, register=None):
 	"""
 	* The image processing steps for extracting the markup data from the image
+	*
+	* register: an optional function (reference_img, target_img, geodata, demo) -> homography, which is
+	*  used to locate the map instead of the automatic detection (e.g. from ground control points)
 	"""
 
-	# locate the map in the target image
-	M = find_map_homography(referenceImg, participantMap, lowe_distance, homo_matches, demo,
-		magsac=magsac, downscale=downscale, max_features=max_features)
+	# locate the map in the target image (using the supplied function if there is one)
+	if register is not None:
+		M = register(referenceImg, participantMap, geodata, demo)
+	else:
+		M = find_map_homography(referenceImg, participantMap, lowe_distance, homo_matches, demo,
+			magsac=magsac, downscale=downscale, max_features=max_features)
 
 	# verify that the photo matches the reference by reading the (rectified) QR code in the photo
 	#  this matters most for marker layouts: the markers are the same on every layout, so a photo of
@@ -425,83 +431,67 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 			# convert the geometry to shapely format
 			geom = shape(feature['geometry'])
 
-			# if too small, drop (either convex hull or regular geom)
-			the_area = geom.convex_hull.area if convex_hull else geom.area
-			if the_area < min_area:
-				dropped_count['small'] += 1
-				continue
-
-			# if wrong ratio between width & height of bounding box, drop
-			sides = [geom.bounds[2] - geom.bounds[0], geom.bounds[3] - geom.bounds[1]]
-			if min(sides) / max(sides) < min_ratio:
-				dropped_count['ratio'] += 1
-				continue
-
-			# if intersects edge, clip it
+			# if intersects edge, clip it (this is done first, so that the size and shape checks
+			#  below apply to what is actually written)
 			if geom.intersects(edge):
 				dropped_count['edge'] += 1
-				# TODO: subdivide into individual geoms
 				geom = geom.difference(edge)
 
-			# make sure that we haven't ended up with an empty geometry
-			if geom.is_empty:
-				continue
+			# split into individual polygons (clipping can split a shape into several pieces)
+			parts = geom.geoms if hasattr(geom, 'geoms') else [geom]
+			for part in parts:
 
-			# if convex hull is desired, save that
-			if (convex_hull):
-				out.write({'geometry': mapping(geom.convex_hull),
-					'properties': {'area': geom.convex_hull.area, 'uid': uid}})
-				feature_count += 1
-			
-			# if centroid is desired, save that
-			elif (centroid):
-				out.write({'geometry': mapping(geom.centroid),
-					'properties': {'area': 0, 'uid': uid}})
-				feature_count += 1
+				# make sure that we haven't ended up with an empty (or non-polygon) geometry
+				if part.is_empty or part.geom_type != 'Polygon':
+					continue
 
-			# if rep point is desired, save that
-			elif (representative_point):
-				out.write({'geometry': mapping(geom.representative_point()),
-					'properties': {'area': 0, 'uid': uid}})
-				feature_count += 1
-			
-			# extract exterior ring from polygon
-			elif (exterior):
+				# get the geometries to write for the requested type of output, each paired with the
+				#  polygon that is used to measure it (i.e. the area of the output feature itself)
+				if (convex_hull):
+					outputs = [ (part.convex_hull, part.convex_hull) ]
 
-				# handle MultiPolygons
-				geoms = geom.geoms if geom.geom_type == 'MultiPolygon' else [geom]
-				for g in geoms:
-				
-					# extract the exterior ring and convert to polygon
-					polygon = Polygon(g.exterior.coords)
-					out.write({'geometry': mapping(polygon),
-						'properties': {'area': geom.area, 'uid': uid}})
+				# for points, measure the polygon that they represent
+				elif (centroid):
+					outputs = [ (part.centroid, part) ]
+				elif (representative_point):
+					outputs = [ (part.representative_point(), part) ]
+
+				# extract exterior ring from polygon (i.e. fill in the shape that was drawn)
+				elif (exterior):
+					polygon = Polygon(part.exterior.coords)
+					outputs = [ (polygon, polygon) ]
+
+				# extract interior rings from polygon (i.e. the holes inside the shape that was drawn)
+				elif (interior):
+					outputs = [ (Polygon(ring.coords), Polygon(ring.coords)) for ring in part.interiors ]
+
+				# TODO: have a `holes` option that gets all polygons within each
+				# 	other polygon and adds them as holes to the constructor (or
+				# 	differences them)
+
+				# otherwise just save the raw geometry
+				else:
+					outputs = [ (part, part) ]
+
+				# check and write each output geometry
+				for out_geom, measured in outputs:
+
+					# if too small, drop
+					if measured.area < min_area:
+						dropped_count['small'] += 1
+						continue
+
+					# if wrong ratio between width & height of bounding box, drop
+					sides = [measured.bounds[2] - measured.bounds[0], measured.bounds[3] - measured.bounds[1]]
+					if max(sides) == 0 or min(sides) / max(sides) < min_ratio:
+						dropped_count['ratio'] += 1
+						continue
+
+					# write the feature (with its area, or 0 for points - this must be a float, or it is written as null)
+					out.write({'geometry': mapping(out_geom),
+						'properties': {'area': measured.area if geom_type == 'Polygon' else 0.0, 'uid': uid}})
 					feature_count += 1
-			
-			# extract interior ring from polygon
-			elif (interior):
 
-				# handle MultiPolygons
-				geoms = geom.geoms if geom.geom_type == 'MultiPolygon' else [geom]
-				for g in geoms:
-				
-					# extract the interior ring and convert to polygon
-					for int_geom in g.interiors:
-						polygon = Polygon(int_geom.coords)
-						out.write({'geometry': mapping(polygon),
-							'properties': {'area': geom.area, 'uid': uid}})
-						feature_count += 1
-
-			# TODO: have a `holes` option that gets all polygons within each 
-			# 	other polygon and adds them as holes to the constructor (or
-			# 	differences them)
-
-			# otherwise just save the raw geometry
-			else:
-				out.write({'geometry': mapping(geom),
-					'properties': {'area': geom.area, 'uid': uid}})
-				feature_count += 1
-	
 	vprint(f"  - Features written: {feature_count}")
 	vprint(f"  - Features dropped:")
 	vprint(f"    * Area too small: {dropped_count['small']}")
@@ -513,7 +503,7 @@ def cleanWriteShapefile(output, opened_map, geodata, buffer, min_area, min_ratio
 def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=100,
 	kernel=3, homo_matches=12, frame=0, min_area=1000, min_ratio=0.2, buffer=10, uid=None, convex_hull=False,
 	centroid=False, representative_point=False, exterior=False, interior=False, demo=False, verbose=False,
-	magsac=False, downscale=1.5, max_features=10000, ignore_qr=False):
+	magsac=False, downscale=1.5, max_features=10000, ignore_qr=False, register=None, ignore_exif=False):
 	"""
 	* Main function: this runs the map extraction, resulting in a file being written
 	*  to the desired location
@@ -524,6 +514,11 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 	* 	max_features: the maximum number of SIFT keypoints to use in each image (0 for no limit)
 	*
 	* 	ignore_qr: continue (with a warning) if the QR code in the photo does not match the reference
+	*
+	* 	register: an optional function (reference_img, target_img, geodata, demo) -> homography, used to
+	*		locate the map instead of the automatic detection (see gcp2gis.py)
+	* 	ignore_exif: read the photo without applying its EXIF orientation tag (i.e. the same way that
+	*		QGIS / GDAL reads it, so that pixel coordinates from QGIS match)
 	"""
 
 	# Set module-level verbose flag
@@ -532,7 +527,8 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 
 	vprint(f"\nExtracting markup: {target} -> {output}")
 	vprint(f"Parameters: threshold={thresh}, kernel={kernel}, lowe_distance={lowe_distance}, min_matches={homo_matches}")
-	vprint(f"Registration: method={'MAGSAC' if magsac else 'RANSAC'}, downscale={downscale}, max_features={max_features}")
+	if register is None:
+		vprint(f"Registration: method={'MAGSAC' if magsac else 'RANSAC'}, downscale={downscale}, max_features={max_features}")
 
 	# make sure there are not any conflicting output options specified
 	if sum([convex_hull, centroid, representative_point, exterior, interior]) > 1:
@@ -587,8 +583,8 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 		participant_map = cvtColor(array(pil_img.convert('RGB')), COLOR_RGB2GRAY)
 	else:
 
-		# read into numpy array
-		ref_np = imread(target)
+		# read into numpy array (optionally ignoring the EXIF orientation, which QGIS / GDAL ignore)
+		ref_np = imread(target, IMREAD_COLOR | IMREAD_IGNORE_ORIENTATION) if ignore_exif else imread(target)
 		if ref_np is None:
 			raise Exception('UNREADABLE IMAGE', f"Cannot read target image {target}")
 
@@ -627,7 +623,8 @@ def run_extract(reference, target, output='out.shp', lowe_distance=0.5, thresh=1
 
 	# run the image processing to get binary result array (this also checks the QR code in the photo matches)
 	opened_map = processImage(reference_img, participant_map, lowe_distance, homo_matches, geodata, thresh, kernel, demo,
-		magsac=magsac, downscale=downscale, max_features=max_features, qr_rect=qr.rect, ignore_qr=ignore_qr)
+		magsac=magsac, downscale=downscale, max_features=max_features, qr_rect=qr.rect, ignore_qr=ignore_qr,
+		register=register)
 
 	# output to a raster if the output file extension is .tif (no cleaning)
 	if output[-4:] == ".tif":

@@ -11,6 +11,9 @@ Example usage:
     Extract Markup from an image of a Paper2GIS layout:
         `python p2g.py extract --reference out.png --target ./data/IMG_9441.jpg -o ./out/path.tif --threshold 100 --kernel 0`
         `python p2g.py extract --reference out.png --target ./data/IMG_9441.jpg -o ./out/path.tif --threshold 100 --kernel 0 --verbose`
+
+    Extract Markup using GCPs (the four corners of the map, clicked in the QGIS Georeferencer) if extract does not work:
+        `python p2g.py gcp --reference out.png --target ./data/IMG_9441.jpg --points ./data/IMG_9441.jpg.points -o ./out/path.shp`
 """
 
 # import argparser
@@ -23,12 +26,49 @@ with catch_warnings():
 
     # set up argument parser
     parser = ArgumentParser("Paper2GIS")
-    subparsers = parser.add_subparsers(help="either: 'generate' to make a Paper2GIS layout; 'extract' to retrieve markup from a photograph of a used Paper2GIS layout; or 'test' to test that a new installation is functioning", dest='command')
+    subparsers = parser.add_subparsers(help="either: 'generate' to make a Paper2GIS layout; 'extract' to retrieve markup from a photograph of a used Paper2GIS layout; 'gcp' to retrieve markup using ground control points (if extract cannot locate the map); or 'test' to test that a new installation is functioning", dest='command')
 
     # create subparsers
     g2p_parser = subparsers.add_parser("generate")
     p2g_parser = subparsers.add_parser("extract")
+    gcp_parser = subparsers.add_parser("gcp")
     test_parser = subparsers.add_parser("test")
+
+
+    def add_output_args(subparser):
+        """
+        * Add the arguments for extracting the markup, cleaning it and writing the output
+        *  (these are shared by extract and gcp)
+        """
+
+        # for the extraction process
+        subparser.add_argument('-o','--output', help='the name of the output file', required = False, default='out.shp')
+        subparser.add_argument('-k','--kernel', type=int, help='the size of the kernel used for opening the image', required = False, default=3)
+        subparser.add_argument('-i','--threshold', type=int, help='the threshold the target image', required = False, default=100)
+
+        # add user id to the output shapefile
+        subparser.add_argument('-u','--uid', type=int, help='user ID number to add the the output shapefile', required = False)
+
+        # for vector data cleaning
+        subparser.add_argument('-a','--min_area', type=float, help='the area below which features will be rejected', required = False, default = 0)
+        subparser.add_argument('-x','--min_ratio', type=float, help='[0-1] the bounding box aspect ratio below which features will be rejected (e.g. 0.2 will reject features with >1:5 aspect ratio)', required = False, default = 0)
+        subparser.add_argument('-b','--buffer', type=float, help='buffer around the edge used for data cleaning', required = False, default = 10)
+
+        # for vector output - do you want a convex hull or not?
+        subparser.add_argument('-cc','--convex_hull', action='store_true', help='store convex hulls of extracted shapes?', required = False, default = False)
+        subparser.add_argument('-cx','--centroid', action='store_true', help='store centroids of extracted shapes?', required = False, default = False)
+        subparser.add_argument('-cr','--representative_point', action='store_true', help='store representative points of extracted shapes?', required = False, default = False)
+        subparser.add_argument('-ce','--exterior', action='store_true', help='extract polygons from boundaries by extracting the outer ring', required = False, default = False)
+        subparser.add_argument('-ci','--interior', action='store_true', help='extract polygons from boundaries by extracting the inner rings', required = False, default = False)
+
+        # don't stop if the QR code in the photo doesn't match the reference (e.g. a reprinted map with the same extent)
+        subparser.add_argument('-iq','--ignore_qr', action='store_true', help='continue (with a warning) if the QR code in the photograph does not match the reference image', required = False, default = False)
+
+        # runtime settings
+        subparser.add_argument('-d','--demo', action='store_true', help='write the intermediate images to ./demo', required = False, default = False)
+
+        # verbose mode
+        subparser.add_argument('-v','--verbose', action='store_true', help='enable verbose output', required=False, default=False)
 
 
     ''' SET UP ARGS FOR GENERATE '''
@@ -73,46 +113,33 @@ with catch_warnings():
 
     ''' SET UP ARGS FOR EXTRACT '''
 
-    # for the extraction process
+    # the input images
     p2g_parser.add_argument('-r','--reference', help='the reference image', required = True)
     p2g_parser.add_argument('-t','--target', help='the target image', required = True)
-    p2g_parser.add_argument('-o','--output', help='the name of the output file', required = False, default='out.shp')
-    p2g_parser.add_argument('-l','--lowe_distance', type=float, help='the lowe distance threshold', required = False, default=0.5)
-    p2g_parser.add_argument('-k','--kernel', type=int, help='the size of the kernel used for opening the image', required = False, default=3)
-    p2g_parser.add_argument('-i','--threshold', type=int, help='the threshold the target image', required = False, default=100)
-    p2g_parser.add_argument('-m','--homo_matches', type=int, help='the number of matches required for homography', required = False, default=12)
 
     # for locating the map in the photograph (registration)
+    p2g_parser.add_argument('-l','--lowe_distance', type=float, help='the lowe distance threshold', required = False, default=0.5)
+    p2g_parser.add_argument('-m','--homo_matches', type=int, help='the number of matches required for homography', required = False, default=12)
     p2g_parser.add_argument('-g','--magsac', action='store_true', help='use MAGSAC rather than RANSAC to calculate the homography (more tolerant of bad matches)', required = False, default = False)
     p2g_parser.add_argument('-ds','--downscale', type=float, help='shrink the photo to this multiple of the reference size for SIFT matching (0 to disable)', required = False, default = 1.5)
     p2g_parser.add_argument('-mf','--max_features', type=int, help='the maximum number of SIFT keypoints to use in each image (0 for no limit)', required = False, default = 10000)
 
-    # add user id to the output shapefile
-    p2g_parser.add_argument('-u','--uid', type=int, help='user ID number to add the the output shapefile', required = False)
-
     # TODO: perhaps also make this happen automatically if not enough matches are found? Need to experiment...
     p2g_parser.add_argument('-f','--frame', type=float, help='a frame to add round the image if the map is too close to the edge', required = False, default=0)
 
-    # for vector data cleaning
-    p2g_parser.add_argument('-a','--min_area', type=float, help='the area below which features will be rejected', required = False, default = 1000)
-    p2g_parser.add_argument('-x','--min_ratio', type=float, help='the ratio (long/short) below which features will be rejected', required = False, default = 0.2)
-    p2g_parser.add_argument('-b','--buffer', type=float, help='buffer around the edge used for data cleaning', required = False, default = 10)
+    # extraction, cleaning and output
+    add_output_args(p2g_parser)
 
-    # for vector output - do you want a convex hull or not?
-    p2g_parser.add_argument('-cc','--convex_hull', action='store_true', help='store convex hulls of extracted shapes?', required = False, default = False)
-    p2g_parser.add_argument('-cx','--centroid', action='store_true', help='store centroids of extracted shapes?', required = False, default = False)
-    p2g_parser.add_argument('-cr','--representative_point', action='store_true', help='store representative points of extracted shapes?', required = False, default = False)
-    p2g_parser.add_argument('-ce','--exterior', action='store_true', help='extract polygons from boundaries by extracting the outer ring', required = False, default = False)
-    p2g_parser.add_argument('-ci','--interior', action='store_true', help='extract polygons from boundaries by extracting the inner rings', required = False, default = False)
 
-    # don't stop if the QR code in the photo doesn't match the reference (e.g. a reprinted map with the same extent)
-    p2g_parser.add_argument('-iq','--ignore_qr', action='store_true', help='continue (with a warning) if the QR code in the photograph does not match the reference image', required = False, default = False)
+    ''' SET UP ARGS FOR GCP '''
 
-    # runtime settings
-    p2g_parser.add_argument('-d','--demo', action='store_true', help='write the intermediate images to ./demo', required = False, default = False)
-    
-    # verbose mode
-    p2g_parser.add_argument('-v','--verbose', action='store_true', help='enable verbose output', required=False, default=False)
+    # the input images and the GCPs (the four corners of the map, clicked in the QGIS Georeferencer)
+    gcp_parser.add_argument('-r','--reference', help='the reference image', required = True)
+    gcp_parser.add_argument('-t','--target', help='the target image', required = True)
+    gcp_parser.add_argument('-p','--points', help='the QGIS .points file containing the four corners of the map (default: the target file name + .points)', required = False, default=None)
+
+    # extraction, cleaning and output
+    add_output_args(gcp_parser)
 
 
     ''' PARSE ARGS AND RUN '''
@@ -141,6 +168,14 @@ with catch_warnings():
             exterior=args.exterior, interior=args.interior, demo=args.demo, verbose=args.verbose,
             magsac=args.magsac, downscale=args.downscale, max_features=args.max_features,
             ignore_qr=args.ignore_qr)
+
+    # extract markup from a photograph of a map using GCPs and store the result in the specified file
+    elif args.command == "gcp":
+        from paper2gis.gcp2gis import run_gcp
+        run_gcp(args.reference, args.target, points=args.points, output=args.output, thresh=args.threshold,
+            kernel=args.kernel, min_area=args.min_area, min_ratio=args.min_ratio, buffer=args.buffer, uid=args.uid,
+            convex_hull=args.convex_hull, centroid=args.centroid, representative_point=args.representative_point,
+            exterior=args.exterior, interior=args.interior, ignore_qr=args.ignore_qr, demo=args.demo, verbose=args.verbose)
 
     # run on test dataset, compare result to baseline and report
     elif args.command == "test":
